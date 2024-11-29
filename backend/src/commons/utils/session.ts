@@ -35,10 +35,8 @@ export async function createSession(data: CreateSessionData): Promise<Session> {
 }
 
 export async function validateSessionToken(
-  token: string,
+  sessionId: string,
 ): Promise<SessionValidationResult> {
-  const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-
   const result = await db
     .select({ user: userTable, session: sessionTable })
     .from(sessionTable)
@@ -54,10 +52,11 @@ export async function validateSessionToken(
     await db.delete(sessionTable).where(eq(sessionTable.id, session.id));
     return { session: null, user: null };
   }
+  let refreshed = false;
   if (
     Date.now() >=
     session.expires_at.getTime() -
-      getEnv("AUTH_REFRESH_EXPIRES_IN").milliseconds()
+      Math.trunc(getEnv("AUTH_REFRESH_EXPIRES_IN").milliseconds() / 2) //session past half expiration time
   ) {
     session.expires_at = new Date(
       Date.now() + getEnv("AUTH_REFRESH_EXPIRES_IN").milliseconds(),
@@ -68,8 +67,9 @@ export async function validateSessionToken(
         expires_at: session.expires_at,
       })
       .where(eq(sessionTable.id, session.id));
+    refreshed = true;
   }
-  return { session, user };
+  return { session, refreshed, user };
 }
 
 export async function invalidateSession(sessionId: string): Promise<void> {
@@ -77,5 +77,5 @@ export async function invalidateSession(sessionId: string): Promise<void> {
 }
 
 export type SessionValidationResult =
-  | { session: Session; user: User }
+  | { session: Session; refreshed?: boolean; user: User }
   | { session: null; user: null };

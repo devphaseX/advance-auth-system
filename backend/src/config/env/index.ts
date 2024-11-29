@@ -28,6 +28,10 @@ export const envSchema = z.object({
     .string()
     .refine(isSupportedTimeUnit, { message: "invalid time unit value" })
     .transform((value) => parseStrTimeUnit(value)!),
+
+  ACCESS_TOKEN_COOKIE_NAME: z.string().min(1),
+  REFRESH_TOKEN_COOKIE_NAME: z.string().min(1),
+  REFRESH_PATH: z.string().min(1),
 });
 
 export const formatErrors = (

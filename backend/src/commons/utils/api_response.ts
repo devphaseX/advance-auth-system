@@ -38,7 +38,7 @@ export function errorResponse<
   code?: Code,
   options?: {
     error_code?: ErrorCode;
-    errors?: Record<string, unknown> | Error;
+    errors?: any;
   },
 ) {
   const { error_code, errors } = options ?? {};

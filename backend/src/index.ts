@@ -4,7 +4,6 @@ import { getEnv } from "config/env/index.js";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
-import StatusCodes from "http-status";
 import authRoute from "@/modules/auth/auth.routes.js";
 
 const app = new Hono();

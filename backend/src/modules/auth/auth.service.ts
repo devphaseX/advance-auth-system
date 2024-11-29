@@ -1,7 +1,10 @@
 import { db } from "@/db/init.js";
-import { userPreferenceTable } from "@/db/schemas/user_preferences.js";
+import {
+  UserPreference,
+  userPreferenceTable,
+} from "@/db/schemas/user_preferences.js";
 import { userTable, type User } from "@/db/schemas/users_table.js";
-import { eq } from "drizzle-orm";
+import { eq, ilike, SQL, sql } from "drizzle-orm";
 
 type CreateUserData = Pick<
   User,
@@ -21,6 +24,8 @@ export async function createUser(data: CreateUserData) {
       .returning({
         id: userTable.id,
         name: userTable.name,
+        email: userTable.email,
+        email_verified_at: userTable.email_verified_at,
         created_at: userTable.created_at,
         updated_at: userTable.updated_at,
       });
@@ -44,8 +49,59 @@ export const checkEmailAvailability = async (email: string) => {
 
 export const getUserWithPassword = async (email: string) => {
   const [user] = await db
-    .select()
+    .select({
+      id: userTable.id,
+      name: userTable.name,
+      email: userTable.email,
+      email_verified_at: userTable.email_verified_at,
+      preference: sql<UserPreference>`row_to_json(${userPreferenceTable})`,
+      password_hash: userTable.password_hash,
+      password_salt: userTable.password_salt,
+      created_at: userTable.created_at,
+      updated_at: userTable.updated_at,
+    } satisfies Partial<Record<keyof User, unknown> & { preference: unknown }>)
     .from(userTable)
+    .innerJoin(
+      userPreferenceTable,
+      eq(userPreferenceTable.user_id, userTable.id),
+    )
     .where(eq(userTable.email, email));
+  return user;
+};
+
+export const getUser = async (
+  params: Partial<{ id: string; email: string }>,
+) => {
+  if (!Object.keys(params).length) {
+    throw new Error("no params provided");
+  }
+
+  const query: SQL[] = [];
+
+  if (params.id) {
+    query.push(eq(userTable.id, params.id));
+  }
+
+  if (params.email) {
+    query.push(ilike(userTable.email, params.email));
+  }
+
+  const [user] = await db
+    .select({
+      id: userTable.id,
+      name: userTable.name,
+      email: userTable.email,
+      email_verified_at: userTable.email_verified_at,
+      preference: sql<UserPreference>`row_to_json(${userPreferenceTable})`,
+      created_at: userTable.created_at,
+      updated_at: userTable.updated_at,
+    } satisfies Partial<Record<keyof User, unknown> & { preference: unknown }>)
+    .from(userTable)
+    .innerJoin(
+      userPreferenceTable,
+      eq(userPreferenceTable.user_id, userTable.id),
+    )
+    .where(sql.join(query, " OR "));
+
   return user;
 };
