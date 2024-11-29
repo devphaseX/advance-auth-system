@@ -32,6 +32,7 @@ export const envSchema = z.object({
   ACCESS_TOKEN_COOKIE_NAME: z.string().min(1),
   REFRESH_TOKEN_COOKIE_NAME: z.string().min(1),
   REFRESH_PATH: z.string().min(1),
+  OTP_LENGTH: z.coerce.number().min(5),
 });
 
 export const formatErrors = (

@@ -26,3 +26,12 @@ export const loginUserSchema = z.object({
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1).optional(),
 });
+
+export const verifyEmailSchema = z.object({
+  code: z.string().min(1).max(255),
+});
+
+export const resetPasswordSchema = z.object({
+  password: z.string().min(8),
+  verificationCode: z.string().min(1).max(255),
+});

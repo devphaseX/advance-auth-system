@@ -6,8 +6,7 @@ import {
   encodeHexLowerCase,
 } from "@oslojs/encoding";
 import { db } from "@/db/init.js";
-import { createDate, TimeSpan } from "oslo";
-import { sha256 } from "@oslojs/crypto/sha2";
+import { createDate } from "oslo";
 import { eq } from "drizzle-orm";
 import { getEnv } from "config/env";
 

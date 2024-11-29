@@ -105,3 +105,15 @@ export const getUser = async (
 
   return user;
 };
+
+export const markUserEmailAsVerified = async (userId: string) => {
+  const [verifiedUser] = await db
+    .update(userTable)
+    .set({
+      email_verified_at: new Date(),
+    })
+    .where(eq(userTable.id, userId))
+    .returning();
+
+  return getUser({ id: verifiedUser.id });
+};

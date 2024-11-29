@@ -1,5 +1,5 @@
 import { VerificationEnum } from "@/commons/enums/verification.enum.js";
-import { pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
 import { dateTimestampFields } from "./shared";
 import { relations, type InferSelectModel } from "drizzle-orm";

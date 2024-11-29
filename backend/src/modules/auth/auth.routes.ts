@@ -4,12 +4,14 @@ import {
   loginUserSchema,
   refreshTokenSchema,
   registerUserSchema,
+  verifyEmailSchema,
 } from "commons/validators/auth.validator.js";
 import {
   checkEmailAvailability,
   createUser,
   getUser,
   getUserWithPassword,
+  markUserEmailAsVerified,
 } from "./auth.service.js";
 import { hash, verify } from "@/commons/utils/hash.js";
 import {
@@ -23,10 +25,12 @@ import {
   invalidateSession,
   validateSessionToken,
 } from "@/commons/utils/session.js";
-import { ulid } from "ulid";
 import { createDate, TimeSpan } from "oslo";
 import { getEnv } from "config/env/index.js";
-import { createVerificationCode } from "@/services/verification.service.js";
+import {
+  createVerificationCode,
+  getVerificationCode,
+} from "@/services/verification.service.js";
 import { VerificationEnum } from "@/commons/enums/verification.enum.js";
 import { signToken, verifyToken } from "@/commons/utils/token.js";
 import {
@@ -71,11 +75,12 @@ app.post(
       password_salt,
     });
 
-    const verifyEmailCode = await createVerificationCode({
+    const { encoded, otp, verifyCode } = await createVerificationCode({
       type: VerificationEnum.EMAIL_VERIFY,
       user_id: newUser.id,
-      expired_at: createDate(getEnv("OTP_EXPIRES_IN")),
     });
+
+    console.log({ encoded, otp, verifyCode });
 
     return successResponse(c, {
       data: { user: newUser },
@@ -183,7 +188,6 @@ app.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
   }
 
   const sessionResult = await validateSessionToken(token.session_id);
-
   if (!(sessionResult.session && sessionResult.user)) {
     return errorResponse(
       c,
@@ -203,7 +207,9 @@ app.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
       user_id: user.id,
       session_id: session.id,
       enable_2fa: user.preference.enabled_2fa,
-      two_factor_verified: !user.preference.enabled_2fa,
+      two_factor_verified: user.preference.enabled_2fa
+        ? Boolean(session.two_factor_verified)
+        : false,
     },
     getEnv("AUTH_SECRET"),
     getEnv("AUTH_EXPIRES_IN"),
@@ -242,5 +248,41 @@ app.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
     },
   });
 });
+
+app.post(
+  "/verify-email",
+  zValidator(
+    "json",
+    verifyEmailSchema,
+    validateErrorHook("invalid request body"),
+  ),
+  async (c) => {
+    const { code } = c.req.valid("json");
+    const verifyEmailCode = await getVerificationCode(
+      code,
+      VerificationEnum.EMAIL_VERIFY,
+    );
+
+    if (!verifyEmailCode) {
+      return errorResponse(c, "invalid token", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (isPast(verifyEmailCode.expired_at)) {
+      return errorResponse(c, "token expired", StatusCodes.UNAUTHORIZED);
+    }
+
+    const user = await getUser({ id: verifyEmailCode.user_id });
+    if (!user) {
+      return errorResponse(c, "invalid token");
+    }
+
+    if (user.email_verified_at) {
+      return errorResponse(c, "user verified already", StatusCodes.FORBIDDEN);
+    }
+
+    const verifiedUser = await markUserEmailAsVerified(verifyEmailCode.user_id);
+    return successResponse(c, { data: { user: verifiedUser } });
+  },
+);
 
 export default app;
