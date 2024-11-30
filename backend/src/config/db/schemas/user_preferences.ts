@@ -1,8 +1,20 @@
-import { boolean, jsonb, pgTable, text, varchar } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  jsonb,
+  pgTable,
+  pgView,
+  QueryBuilder,
+  text,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
 import { z } from "zod";
 import { dateTimestampFields } from "./shared";
-import { relations, type InferSelectModel } from "drizzle-orm";
+import {
+  InferInsertModel,
+  relations,
+  type InferSelectModel,
+} from "drizzle-orm";
 import { userTable } from "./users_table";
 
 export const userPreferenceTable = pgTable("user_preferences", {
@@ -33,3 +45,20 @@ export const userPreferenceRelations = relations(
     }),
   }),
 );
+
+const qb = new QueryBuilder();
+export const publicUserPreference = pgView("public_user_preferences").as(
+  qb
+    .select({
+      id: userPreferenceTable.id,
+      enabled_2fa: userPreferenceTable.enabled_2fa,
+      enabled_email_notification:
+        userPreferenceTable.enabled_email_notification,
+      user_id: userPreferenceTable.user_id,
+      created_at: userPreferenceTable.created_at,
+      updated_at: userPreferenceTable.updated_at,
+    } as Partial<Record<keyof UserPreference, any>>)
+    .from(userPreferenceTable),
+);
+
+export type PublicUserPreference = typeof publicUserPreference._.selectedFields;

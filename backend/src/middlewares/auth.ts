@@ -9,7 +9,7 @@ import StatusCodes from "http-status";
 import { getAuthSession, RequestEnv, setAuthSession } from "./context_storage";
 import { HTTPException } from "hono/http-exception";
 import { updateSessionLastUsed } from "@/modules/session/session.service";
-import { getUser } from "@/modules/auth/auth.service";
+import { getUser, getClientUserPayload } from "@/modules/auth/auth.service";
 
 export const authMiddleware = (ignore2faCheck = false) =>
   createMiddleware<RequestEnv>(async (c, next) => {

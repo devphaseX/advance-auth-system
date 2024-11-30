@@ -5,7 +5,11 @@ import { errorResponse, successResponse } from "@/commons/utils/api_response";
 import { zValidator } from "@hono/zod-validator";
 import { getRecoveryCodesSchema } from "@/commons/validators/auth.validator";
 import { validateErrorHook } from "@/commons/utils/app_error";
-import { getUserWithPassword, resetRecoveryCodes } from "../auth/auth.service";
+import {
+  getClientUserPayload,
+  getUser,
+  resetRecoveryCodes,
+} from "../auth/auth.service";
 import { verify } from "@/commons/utils/hash";
 import {
   decodeBase64,
@@ -22,7 +26,10 @@ const app = new Hono<RequestEnv>();
 
 app.get("/current", authMiddleware(true), async (c) => {
   const session = auth();
-  return successResponse(c, { data: { user: session.user } });
+
+  return successResponse(c, {
+    data: { user: await getClientUserPayload({ id: session.user.id }) },
+  });
 });
 
 app.post(
@@ -37,9 +44,9 @@ app.post(
     const { user } = auth();
     const { password } = c.req.valid("json");
 
-    const { password_hash, password_salt } = await getUserWithPassword(
-      user.email,
-    );
+    const { password_hash, password_salt } = await getUser({
+      email: user.email,
+    });
 
     const isCorrectPassword = await verify(
       password,
@@ -90,9 +97,9 @@ app.post(
     const { user } = auth();
     const { password } = c.req.valid("json");
 
-    const { password_hash, password_salt } = await getUserWithPassword(
-      user.email,
-    );
+    const { password_hash, password_salt } = await getUser({
+      id: user.id,
+    });
 
     const isCorrectPassword = await verify(
       password,

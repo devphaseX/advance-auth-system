@@ -2,6 +2,8 @@ import { generateRandomRecoveryCode } from "@/commons/utils/code";
 import { encryptString } from "@/commons/utils/encryption";
 import { db } from "@/db/init.js";
 import {
+  publicUserPreference,
+  PublicUserPreference,
   UserPreference,
   userPreferenceTable,
 } from "@/db/schemas/user_preferences.js";
@@ -58,25 +60,40 @@ export const checkEmailAvailability = async (email: string) => {
   return Boolean(userExist);
 };
 
-export const getUserWithPassword = async (email: string) => {
+export const getClientUserPayload = async (
+  params: Partial<{ id: string; email: string }>,
+) => {
+  if (!Object.keys(params).length) {
+    throw new Error("no params provided");
+  }
+
+  const query: SQL[] = [];
+
+  if (params.id) {
+    query.push(eq(userTable.id, params.id));
+  }
+
+  if (params.email) {
+    query.push(ilike(userTable.email, params.email));
+  }
+
   const [user] = await db
     .select({
       id: userTable.id,
       name: userTable.name,
       email: userTable.email,
       email_verified_at: userTable.email_verified_at,
-      preference: sql<UserPreference>`row_to_json(${userPreferenceTable})`,
-      password_hash: userTable.password_hash,
-      password_salt: userTable.password_salt,
+      preference: sql<PublicUserPreference>`row_to_json(${publicUserPreference})`,
       created_at: userTable.created_at,
       updated_at: userTable.updated_at,
     } satisfies Partial<Record<keyof User, unknown> & { preference: unknown }>)
     .from(userTable)
     .innerJoin(
-      userPreferenceTable,
-      eq(userPreferenceTable.user_id, userTable.id),
+      publicUserPreference,
+      eq(publicUserPreference.user_id, userTable.id),
     )
-    .where(eq(userTable.email, email));
+    .where(sql.join(query, " OR "));
+
   return user;
 };
 
@@ -104,6 +121,8 @@ export const getUser = async (
       email: userTable.email,
       email_verified_at: userTable.email_verified_at,
       preference: sql<UserPreference>`row_to_json(${userPreferenceTable})`,
+      password_hash: userTable.password_hash,
+      password_salt: userTable.password_salt,
       created_at: userTable.created_at,
       updated_at: userTable.updated_at,
     } satisfies Partial<Record<keyof User, unknown> & { preference: unknown }>)
@@ -126,7 +145,7 @@ export const markUserEmailAsVerified = async (userId: string) => {
     .where(eq(userTable.id, userId))
     .returning();
 
-  return getUser({ id: verifiedUser.id });
+  return getClientUserPayload({ id: verifiedUser.id });
 };
 
 export const updateUserPassword = async (

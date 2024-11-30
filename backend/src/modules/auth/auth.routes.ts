@@ -11,8 +11,8 @@ import {
 import {
   checkEmailAvailability,
   createUser,
+  getClientUserPayload,
   getUser,
-  getUserWithPassword,
   markUserEmailAsVerified,
   updateUserPassword,
 } from "./auth.service.js";
@@ -131,7 +131,7 @@ app.post(
       });
     }
 
-    const user = await getUserWithPassword(email);
+    const user = await getUser({ email });
     if (!user.password_hash) {
       return errorResponse(
         c,
@@ -182,7 +182,7 @@ app.post(
     setAuthenicationCookie(c, { access: accessToken, refresh: refreshToken });
     return successResponse(c, {
       data: {
-        user: await getUser({ id: user.id }),
+        user: await getClientUserPayload({ id: user.id }),
         mfaRequired: Boolean(user.preference.enabled_2fa),
         accessToken: {
           value: accessToken.token,
@@ -227,7 +227,7 @@ app.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
     refreshed,
     session,
   } = sessionResult;
-  const user = await getUser({ id: userId });
+  const user = await getClientUserPayload({ id: userId });
   const accessToken = await signToken<JwtAccessPayload>(
     {
       user_id: user.id,
@@ -300,7 +300,7 @@ app.post(
     }
 
     try {
-      const user = await getUser({ id: verifyEmailCode.user_id });
+      const user = await getClientUserPayload({ id: verifyEmailCode.user_id });
       if (!user) {
         return errorResponse(c, "invalid token");
       }
@@ -328,7 +328,7 @@ app.post(
   ),
   async (c) => {
     const { email } = c.req.valid("json");
-    const user = await getUser({ email });
+    const user = await getClientUserPayload({ email });
 
     if (!user) {
       return successResponse(
@@ -402,7 +402,7 @@ app.post(
       return errorResponse(c, "expired reset code", StatusCodes.UNAUTHORIZED);
     }
 
-    const user = await getUser({ id: userId });
+    const user = await getClientUserPayload({ id: userId });
     if (!(user && userId === resetCode.user_id)) {
       return errorResponse(c, "invalid reset code", StatusCodes.UNAUTHORIZED);
     }
