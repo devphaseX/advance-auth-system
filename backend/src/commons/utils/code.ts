@@ -1,4 +1,6 @@
-import { encodeBase32UpperCaseNoPadding } from "@oslojs/encoding";
+import { encodeBase32UpperCaseNoPadding, encodeBase64 } from "@oslojs/encoding";
+import { getEnv } from "config/env";
+import crypto from "crypto";
 
 export function generateRandomOTP(): string {
   const bytes = new Uint8Array(5);
@@ -12,4 +14,10 @@ export function generateRandomRecoveryCode(): string {
   crypto.getRandomValues(recoveryCodeBytes);
   const recoveryCode = encodeBase32UpperCaseNoPadding(recoveryCodeBytes);
   return recoveryCode;
+}
+
+export function generate2faSecret(): [string, Uint8Array] {
+  const bytes = new Uint8Array(getEnv("TWO_FACTOR_SECRET_LENGTH"));
+  crypto.getRandomValues(bytes);
+  return [encodeBase64(bytes), bytes];
 }

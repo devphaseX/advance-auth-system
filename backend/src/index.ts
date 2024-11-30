@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { errorResponse, successResponse } from "commons/utils/api_response.js";
+import { errorResponse } from "commons/utils/api_response.js";
 import { getEnv } from "config/env/index.js";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -7,7 +7,8 @@ import { HTTPException } from "hono/http-exception";
 import authRoute from "@/modules/auth/auth.routes.js";
 import userRoute from "@/modules/user/user.route";
 import sessionRoute from "@/modules/session/session.route";
-import { contextStorage, getContext } from "hono/context-storage";
+import mfaRoute from "@/modules/mfa/mfa.routes";
+import { contextStorage } from "hono/context-storage";
 const app = new Hono();
 
 app.use(
@@ -26,7 +27,8 @@ app
   .use(contextStorage())
   .route("/auth", authRoute)
   .route("/users", userRoute)
-  .route("/sessions", sessionRoute);
+  .route("/sessions", sessionRoute)
+  .route("/mfa", mfaRoute);
 
 app.onError(async (err, c) => {
   if (err instanceof HTTPException) {

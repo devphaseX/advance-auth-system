@@ -265,6 +265,7 @@ app.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
     });
   }
 
+  setAuthenicationCookie(c, { access: accessToken });
   return successResponse(c, {
     data: {
       accessToken: {

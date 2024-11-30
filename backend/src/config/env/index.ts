@@ -37,6 +37,8 @@ export const envSchema = z.object({
   MAIL_SENDER_EMAIL: z.string().email(),
   MAIL_SENDER_NAME: z.string().min(1),
   MAIL_TRAP_ACCOUNT_ID: z.string().min(1),
+  TWO_FACTOR_SECRET_LENGTH: z.coerce.number().int(),
+  PLATFORM_NAME: z.string().min(1),
 });
 
 export const formatErrors = (
