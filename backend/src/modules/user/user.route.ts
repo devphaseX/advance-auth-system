@@ -119,7 +119,7 @@ app.post(
         const code = generateRandomRecoveryCode();
         return {
           encrypted: encodeBase64(encryptString(code)),
-          encoded: encodeBase32UpperCase(new TextEncoder().encode(code)),
+          encoded: encodeBase32NoPadding(new TextEncoder().encode(code)),
         };
       });
 
