@@ -85,7 +85,6 @@ app.post(
 
     const { hash: password_hash, salt } = await hash(payload.password);
     const password_salt = salt.toString("base64");
-
     const newUser = await createUser({
       name: payload.name,
       email: payload.email,

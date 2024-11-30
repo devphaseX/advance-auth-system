@@ -1,6 +1,6 @@
 import { db } from "@/db/init";
 import { Session, sessionTable } from "@/db/schemas";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   PgColumn,
   PgTableWithColumns,
@@ -43,4 +43,15 @@ export const getSessions = (userId: string, activeSessionId?: string) => {
     .from(sessionTable)
     .where(eq(sessionTable.user_id, userId))
     .orderBy(desc(sessionTable.created_at));
+};
+
+export const deleteSession = async (sessionId: string, userId: string) => {
+  const [deletedSession] = await db
+    .delete(sessionTable)
+    .where(
+      and(eq(sessionTable.id, sessionId), eq(sessionTable.user_id, userId)),
+    )
+    .returning();
+
+  return !!deletedSession;
 };
