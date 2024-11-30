@@ -9,12 +9,13 @@ import { getUserWithPassword, resetRecoveryCodes } from "../auth/auth.service";
 import { verify } from "@/commons/utils/hash";
 import {
   decodeBase64,
+  encodeBase32NoPadding,
   encodeBase32UpperCase,
   encodeBase64,
 } from "@oslojs/encoding";
 import StatusCodes from "http-status";
 import { ErrorCode } from "@/commons/enums/error_code";
-import { decrypt, encryptString } from "@/commons/utils/encryption";
+import { decrypt, encrypt, encryptString } from "@/commons/utils/encryption";
 import { generateRandomRecoveryCode } from "@/commons/utils/code";
 
 const app = new Hono<RequestEnv>();
@@ -63,12 +64,16 @@ app.post(
           const code = generateRandomRecoveryCode();
           return new TextEncoder().encode(code);
         });
+
+      await resetRecoveryCodes(
+        user.id,
+        decryptedCodeBytes.map((byteSlice) => encodeBase64(encrypt(byteSlice))),
+      );
     }
 
     const recoveryCodes = decryptedCodeBytes.map((byteSlice) =>
-      encodeBase32UpperCase(byteSlice),
+      encodeBase32NoPadding(byteSlice),
     );
-
     return successResponse(c, { data: { recoveryCodes } });
   },
 );
