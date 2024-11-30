@@ -33,6 +33,10 @@ export const envSchema = z.object({
   REFRESH_TOKEN_COOKIE_NAME: z.string().min(1),
   REFRESH_PATH: z.string().min(1),
   OTP_LENGTH: z.coerce.number().min(5),
+  MAIL_TRAP_API_KEY: z.string().min(1),
+  MAIL_SENDER_EMAIL: z.string().email(),
+  MAIL_SENDER_NAME: z.string().min(1),
+  MAIL_TRAP_ACCOUNT_ID: z.string().min(1),
 });
 
 export const formatErrors = (

@@ -25,6 +25,8 @@
     "hono": "^4.6.12",
     "http-status": "^2.0.0",
     "jose": "^5.9.6",
+    "mailtrap": "^3.4.0",
+    "nodemailer": "^6.9.16",
     "oslo": "^1.2.1",
     "pg": "^8.13.1",
     "qrcode": "^1.5.4",
@@ -34,6 +36,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
+    "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.10",
     "@types/qrcode": "^1.5.5",
     "@types/speakeasy": "^2.0.10",

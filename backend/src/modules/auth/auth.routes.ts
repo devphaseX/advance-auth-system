@@ -46,6 +46,8 @@ import tryit from "@/commons/utils/tryit.js";
 import { getSession } from "../session/session.service.js";
 import { isPast } from "date-fns";
 import { getCookie } from "hono/cookie";
+import { sendMail } from "mailers/mailer.js";
+import { verifyEmailTemplate } from "mailers/templates/template.js";
 
 const app = new Hono();
 
@@ -75,12 +77,22 @@ app.post(
       password_salt,
     });
 
-    const { encoded, otp, verifyCode } = await createVerificationCode({
+    const { encoded, verifyCode } = await createVerificationCode({
       type: VerificationEnum.EMAIL_VERIFY,
       user_id: newUser.id,
     });
 
-    console.log({ encoded, otp, verifyCode });
+    try {
+      const url = `${getEnv("APP_ORIGIN")}/confirm-account?token=${encoded}&userId=${newUser.id}&expiredAt=${verifyCode.expired_at}`;
+      const mailResp = await sendMail({
+        to: [{ name: newUser.name, email: newUser.email }],
+        ...verifyEmailTemplate(url),
+      });
+
+      console.log({ mailResp });
+    } catch (e) {
+      console.log({ e });
+    }
 
     return successResponse(c, {
       data: { user: newUser },
