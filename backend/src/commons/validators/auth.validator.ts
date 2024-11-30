@@ -38,3 +38,5 @@ export const resetPasswordSchema = z.object({
 });
 
 export const forgetPasswordSchema = z.object({ email: z.string().email() });
+
+export const getRecoveryCodesSchema = z.object({ password: z.string().min(1) });

@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text, varchar } from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
 import { z } from "zod";
 import { dateTimestampFields } from "./shared";
@@ -18,6 +18,7 @@ export const userPreferenceTable = pgTable("user_preferences", {
   user_id: varchar("user_id").references(() => userTable.id, {
     onDelete: "cascade",
   }),
+  recovery_codes: jsonb("recovery_codes").$type<string[]>(),
   ...dateTimestampFields,
 });
 

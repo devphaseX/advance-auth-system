@@ -14,3 +14,16 @@ export const setMfaSecret = async (userId: string, secret: string) => {
 
   return !!updatedPref;
 };
+
+export const removeMfaSecret = async (userId: string) => {
+  const [updatedPref] = await db
+    .update(userPreferenceTable)
+    .set({
+      enabled_2fa: false,
+      two_factor_secret: null,
+    })
+    .where(eq(userPreferenceTable.user_id, userId))
+    .returning();
+
+  return !!updatedPref;
+};

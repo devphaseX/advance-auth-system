@@ -14,7 +14,7 @@ import {
   verifyLoginMfaSchema,
   verifyMfaSetupSchema,
 } from "@/commons/validators/mfa.validator";
-import { setMfaSecret } from "./mfa.service";
+import { removeMfaSecret, setMfaSecret } from "./mfa.service";
 import { validateErrorHook } from "@/commons/utils/app_error";
 import { signToken } from "@/commons/utils/token";
 import { JwtAccessPayload } from "@/commons/interface/jwt";
@@ -136,9 +136,26 @@ app.post(
         },
       },
       StatusCodes.OK,
-      "mfa verification confirm",
+      "mfa verified and logged in",
     );
   },
 );
+
+app.post("/revoke", authMiddleware(), async (c) => {
+  const { user } = auth();
+
+  if (!user.preference.enabled_2fa) {
+    return errorResponse(c, "mfa not setup");
+  }
+
+  await removeMfaSecret(user.id);
+
+  return successResponse(
+    c,
+    { data: { mfaRequired: false } },
+    StatusCodes.OK,
+    "Mfa removed succesfully",
+  );
+});
 
 export default app;

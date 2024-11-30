@@ -1,9 +1,12 @@
+import { generateRandomRecoveryCode } from "@/commons/utils/code";
+import { encryptString } from "@/commons/utils/encryption";
 import { db } from "@/db/init.js";
 import {
   UserPreference,
   userPreferenceTable,
 } from "@/db/schemas/user_preferences.js";
 import { userTable, type User } from "@/db/schemas/users_table.js";
+import { encodeBase64 } from "@oslojs/encoding";
 import { eq, ilike, SQL, sql } from "drizzle-orm";
 
 type CreateUserData = Pick<
@@ -30,8 +33,16 @@ export async function createUser(data: CreateUserData) {
         updated_at: userTable.updated_at,
       });
 
+    const recoveryCodes = Array(5)
+      .fill(0)
+      .map(() => {
+        const code = generateRandomRecoveryCode();
+        return encodeBase64(encryptString(code));
+      });
+
     await db.insert(userPreferenceTable).values({
       user_id: newUser.id,
+      recovery_codes: recoveryCodes,
     });
 
     return newUser;
@@ -138,3 +149,16 @@ export const updateUserPassword = async (
 };
 
 export type AuthUser = Awaited<ReturnType<typeof getUser>>;
+
+export const resetRecoveryCodes = async (
+  userId: string,
+  recoveryCodes: string[],
+) => {
+  const [updatePref] = await db
+    .update(userPreferenceTable)
+    .set({ recovery_codes: recoveryCodes })
+    .where(eq(userPreferenceTable.user_id, userId))
+    .returning();
+
+  return !!updatePref;
+};
