@@ -35,3 +35,5 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(8),
   verificationCode: z.string().min(1).max(255),
 });
+
+export const forgetPasswordSchema = z.object({ email: z.string().email() });

@@ -10,7 +10,7 @@ import { generateHOTP } from "oslo/otp";
 import { HMAC } from "oslo/crypto";
 import { encodeBase32NoPadding } from "@oslojs/encoding";
 import { VerificationEnum } from "@/commons/enums/verification.enum";
-import { and, eq } from "drizzle-orm";
+import { and, between, eq, sql } from "drizzle-orm";
 import { encryptString } from "@/commons/utils/encryption";
 import {
   generateRandomOTP,
@@ -118,4 +118,26 @@ export const removeVerificationCode = async (
     .returning();
 
   return !!removed;
+};
+
+export const getVerificationCodeAttemptWithin = async (
+  userId: string,
+  type: VerificationEnum,
+  timeInterval: TimeSpan,
+) => {
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(verificationCodeTable)
+    .where(
+      and(
+        eq(verificationCodeTable.user_id, userId),
+        between(
+          verificationCodeTable.created_at,
+          createDate(timeInterval),
+          new Date(),
+        ),
+      ),
+    );
+
+  return count;
 };

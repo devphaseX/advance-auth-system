@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
+  forgetPasswordSchema,
   loginUserSchema,
   refreshTokenSchema,
   registerUserSchema,
@@ -30,6 +31,7 @@ import { getEnv } from "config/env/index.js";
 import {
   createVerificationCode,
   getVerificationCode,
+  getVerificationCodeAttemptWithin,
 } from "@/services/verification.service.js";
 import { VerificationEnum } from "@/commons/enums/verification.enum.js";
 import { signToken, verifyToken } from "@/commons/utils/token.js";
@@ -47,7 +49,14 @@ import { getSession } from "../session/session.service.js";
 import { isPast } from "date-fns";
 import { getCookie } from "hono/cookie";
 import { sendMail } from "mailers/mailer.js";
-import { verifyEmailTemplate } from "mailers/templates/template.js";
+import {
+  passwordResetTemplate,
+  verifyEmailTemplate,
+} from "mailers/templates/template.js";
+import {
+  FORGET_PASSWORD_ALLOWED_ATTEMPT,
+  FORGET_PASSWORD_ALLOWED_ATTEMPT_DURATION,
+} from "@/commons/utils/constant.js";
 
 const app = new Hono();
 
@@ -84,14 +93,12 @@ app.post(
 
     try {
       const url = `${getEnv("APP_ORIGIN")}/confirm-account?token=${encoded}&userId=${newUser.id}&expiredAt=${verifyCode.expired_at}`;
-      const mailResp = await sendMail({
+      await sendMail({
         to: [{ name: newUser.name, email: newUser.email }],
         ...verifyEmailTemplate(url),
       });
-
-      console.log({ mailResp });
     } catch (e) {
-      console.log({ e });
+      console.log("[REGISTER USER MAIL ERROR]", e);
     }
 
     return successResponse(c, {
@@ -294,6 +301,64 @@ app.post(
 
     const verifiedUser = await markUserEmailAsVerified(verifyEmailCode.user_id);
     return successResponse(c, { data: { user: verifiedUser } });
+  },
+);
+
+app.post(
+  "/forget-password",
+  zValidator(
+    "json",
+    forgetPasswordSchema,
+    validateErrorHook("invalid request body"),
+  ),
+  async (c) => {
+    const { email } = c.req.valid("json");
+    const user = await getUser({ email });
+
+    if (!user) {
+      return successResponse(
+        c,
+        undefined,
+        StatusCodes.OK,
+        "You will received a mail containing your reset link if we found your account",
+      );
+    }
+
+    const currentAttemptCount = await getVerificationCodeAttemptWithin(
+      user.id,
+      VerificationEnum.PASSWORD_RESET,
+      FORGET_PASSWORD_ALLOWED_ATTEMPT_DURATION,
+    );
+
+    if (currentAttemptCount >= FORGET_PASSWORD_ALLOWED_ATTEMPT) {
+      return errorResponse(
+        c,
+        "Too many request",
+        StatusCodes.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const { encoded, verifyCode } = await createVerificationCode({
+      type: VerificationEnum.PASSWORD_RESET,
+      user_id: user.id,
+    });
+
+    try {
+      const url = `${getEnv("APP_ORIGIN")}/reset-password?token=${encoded}&userId=${user.id}&expiredAt=${verifyCode.expired_at}`;
+      await sendMail({
+        to: [{ name: user.name, email: user.email }],
+        ...passwordResetTemplate(url),
+      });
+    } catch (e) {
+      console.log("[FORGET PASSWORD MAIL ERROR]", e);
+    }
+
+    return successResponse(
+      c,
+      undefined,
+      StatusCodes.OK,
+      "You will received a mail containing your reset link if we found your account",
+    );
   },
 );
 
