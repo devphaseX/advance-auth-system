@@ -117,3 +117,22 @@ export const markUserEmailAsVerified = async (userId: string) => {
 
   return getUser({ id: verifiedUser.id });
 };
+
+export const updateUserPassword = async (
+  userId: string,
+  passwordHash: string,
+  passwordSaltByte: Buffer,
+) => {
+  const passwordSalt = passwordSaltByte.toString("base64");
+
+  const [updatedUser] = await db
+    .update(userTable)
+    .set({
+      password_hash: passwordHash,
+      password_salt: passwordSalt,
+    })
+    .where(eq(userTable.id, userId))
+    .returning();
+
+  return Boolean(updatedUser);
+};

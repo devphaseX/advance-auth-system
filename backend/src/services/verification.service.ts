@@ -10,7 +10,7 @@ import { generateHOTP } from "oslo/otp";
 import { HMAC } from "oslo/crypto";
 import { encodeBase32NoPadding } from "@oslojs/encoding";
 import { VerificationEnum } from "@/commons/enums/verification.enum";
-import { and, between, eq, sql } from "drizzle-orm";
+import { and, between, eq, SQL, sql } from "drizzle-orm";
 import { encryptString } from "@/commons/utils/encryption";
 import {
   generateRandomOTP,
@@ -22,12 +22,14 @@ import { differenceInSeconds } from "date-fns";
 import { signToken, verifyToken } from "@/commons/utils/token";
 import tryit from "@/commons/utils/tryit";
 
-type CreateVerificationCodeData = Pick<VerificationCode, "user_id" | "type">;
+type CreateVerificationCodeData = Pick<VerificationCode, "user_id" | "type"> & {
+  expires_in?: TimeSpan;
+};
 
 export const createVerificationCode = async (
   data: CreateVerificationCodeData,
 ) => {
-  const validPeriod = getEnv("OTP_EXPIRES_IN");
+  const validPeriod = data.expires_in ?? getEnv("OTP_EXPIRES_IN");
   const tot = new TOTPController({
     digits: getEnv("OTP_LENGTH"),
     period: validPeriod,
@@ -58,6 +60,7 @@ export const createVerificationCode = async (
 export const getVerificationCode = async (
   token: string,
   type: VerificationEnum,
+  userId?: string,
 ) => {
   let key = token;
   if (key.length > getEnv("OTP_LENGTH")) {
@@ -90,15 +93,19 @@ export const getVerificationCode = async (
     "hex",
   );
 
+  const query: SQL[] = [
+    eq(verificationCodeTable.code, code),
+    eq(verificationCodeTable.type, type),
+  ];
+
+  if (userId) {
+    query.push(eq(verificationCodeTable.user_id, userId));
+  }
+
   const [verifyCode] = await db
     .select()
     .from(verificationCodeTable)
-    .where(
-      and(
-        eq(verificationCodeTable.code, code),
-        eq(verificationCodeTable.type, type),
-      ),
-    );
+    .where(and(...query));
 
   return verifyCode;
 };

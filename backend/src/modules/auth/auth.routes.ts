@@ -5,6 +5,7 @@ import {
   loginUserSchema,
   refreshTokenSchema,
   registerUserSchema,
+  resetPasswordSchema,
   verifyEmailSchema,
 } from "commons/validators/auth.validator.js";
 import {
@@ -13,6 +14,7 @@ import {
   getUser,
   getUserWithPassword,
   markUserEmailAsVerified,
+  updateUserPassword,
 } from "./auth.service.js";
 import { hash, verify } from "@/commons/utils/hash.js";
 import {
@@ -56,6 +58,8 @@ import {
 import {
   FORGET_PASSWORD_ALLOWED_ATTEMPT,
   FORGET_PASSWORD_ALLOWED_ATTEMPT_DURATION,
+  FORGET_PASSWORD_OTP_EXPIRES_IN,
+  VERIFY_EMAIL_EXPIRES_IN,
 } from "@/commons/utils/constant.js";
 
 const app = new Hono();
@@ -87,6 +91,7 @@ app.post(
     });
 
     const { encoded, verifyCode } = await createVerificationCode({
+      expires_in: VERIFY_EMAIL_EXPIRES_IN,
       type: VerificationEnum.EMAIL_VERIFY,
       user_id: newUser.id,
     });
@@ -305,7 +310,7 @@ app.post(
 );
 
 app.post(
-  "/forget-password",
+  "/password/forget",
   zValidator(
     "json",
     forgetPasswordSchema,
@@ -335,10 +340,12 @@ app.post(
         c,
         "Too many request",
         StatusCodes.TOO_MANY_REQUESTS,
+        { error_code: ErrorCode.AUTH_TOO_MANY_ATTEMPTS },
       );
     }
 
     const { encoded, verifyCode } = await createVerificationCode({
+      expires_in: FORGET_PASSWORD_OTP_EXPIRES_IN,
       type: VerificationEnum.PASSWORD_RESET,
       user_id: user.id,
     });
@@ -359,6 +366,42 @@ app.post(
       StatusCodes.OK,
       "You will received a mail containing your reset link if we found your account",
     );
+  },
+);
+
+app.post(
+  "/password/reset",
+  zValidator(
+    "json",
+    resetPasswordSchema,
+    validateErrorHook("invalid request body"),
+  ),
+  async (c) => {
+    const { password, userId, verificationCode } = c.req.valid("json");
+    const resetCode = await getVerificationCode(
+      verificationCode,
+      VerificationEnum.PASSWORD_RESET,
+      userId,
+    );
+
+    if (!resetCode) {
+      return errorResponse(c, "invalid reset code", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (isPast(resetCode.expired_at)) {
+      return errorResponse(c, "expired reset code", StatusCodes.UNAUTHORIZED);
+    }
+
+    const user = await getUser({ id: userId });
+    if (!(user && userId === resetCode.user_id)) {
+      return errorResponse(c, "invalid reset code", StatusCodes.UNAUTHORIZED);
+    }
+
+    const { hash: newPasswordHash, salt: newPasswordSaltByte } =
+      await hash(password);
+
+    await updateUserPassword(userId, newPasswordHash, newPasswordSaltByte);
+    return successResponse(c, "password resetted successfully");
   },
 );
 
