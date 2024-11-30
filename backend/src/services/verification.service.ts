@@ -72,7 +72,6 @@ export const getVerificationCode = async (
       ),
     );
 
-    console.log({ token });
     if (err) {
       return;
     }

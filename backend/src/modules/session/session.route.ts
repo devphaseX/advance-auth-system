@@ -6,14 +6,14 @@ import StatusCodes from "http-status";
 
 const app = new Hono();
 
-app.get("/all", authMiddleware, async (c) => {
+app.get("/all", authMiddleware(), async (c) => {
   const { session } = auth();
 
   const sessions = await getSessions(session.user_id, session.session_id);
   return successResponse(c, { data: { sessions } });
 });
 
-app.get("/:id", authMiddleware, async (c) => {
+app.get("/:id", authMiddleware(), async (c) => {
   const { id } = c.req.param();
   const { session: currentSession } = auth();
 
@@ -25,7 +25,7 @@ app.get("/:id", authMiddleware, async (c) => {
   return successResponse(c, { data: { session } });
 });
 
-app.delete("/:id", authMiddleware, async (c) => {
+app.delete("/:id", authMiddleware(), async (c) => {
   const { id } = c.req.param();
   const { session: currentSession } = auth();
 

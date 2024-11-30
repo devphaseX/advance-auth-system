@@ -55,3 +55,16 @@ export const deleteSession = async (sessionId: string, userId: string) => {
 
   return !!deletedSession;
 };
+
+export const markSessionAs2faVerified = async (
+  sessionId: string,
+  userId: string,
+) => {
+  const [session] = await db
+    .update(sessionTable)
+    .set({ two_factor_verified: true })
+    .where(eq(sessionTable.id, sessionId))
+    .returning();
+
+  return !!session;
+};

@@ -421,7 +421,7 @@ app.post(
   },
 );
 
-app.delete("/logout", authMiddleware, async (c) => {
+app.delete("/logout", authMiddleware(true), async (c) => {
   const { session } = auth();
   clearAuthenicationCookie(c);
   await invalidateSession(session.session_id);

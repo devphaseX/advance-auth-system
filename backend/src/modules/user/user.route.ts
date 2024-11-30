@@ -5,7 +5,7 @@ import { successResponse } from "@/commons/utils/api_response";
 
 const app = new Hono<RequestEnv>();
 
-app.get("/current", authMiddleware, async (c) => {
+app.get("/current", authMiddleware(true), async (c) => {
   const session = auth();
   return successResponse(c, { data: { user: session.user } });
 });
