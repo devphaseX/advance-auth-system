@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import authRoute from "@/modules/auth/auth.routes.js";
+import userRoute from "@/modules/user/user.route";
 import { contextStorage, getContext } from "hono/context-storage";
 const app = new Hono();
 
@@ -19,7 +20,11 @@ app.use(
   }),
 );
 
-app.basePath("/api/v1").use(contextStorage()).route("/auth", authRoute);
+app
+  .basePath("/api/v1")
+  .use(contextStorage())
+  .route("/auth", authRoute)
+  .route("/users", userRoute);
 
 app.onError(async (err, c) => {
   if (err instanceof HTTPException) {

@@ -25,6 +25,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/commons/*": ["./commons/*"],
+      "@/middlewares/*": ["./middlewares/*"],
       "@/env": ["./config/env/env.ts"],
       "@/services/*": ["./services/*"],
       "@/utils": ["./utils/*"],

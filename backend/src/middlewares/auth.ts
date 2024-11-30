@@ -9,14 +9,15 @@ import StatusCodes from "http-status";
 import { getAuthSession, setAuthSession } from "./context_storage";
 import { HTTPException } from "hono/http-exception";
 import { updateSessionLastUsed } from "@/modules/session/session.service";
+import { getUser } from "@/modules/auth/auth.service";
 
 export const authMiddleware = createMiddleware(async (c, next) => {
   let token = getAccessTokenCookie(c)?.trim();
-  let retrievedTokenFromHeader = false;
+  let isHeaderToken = false;
 
   if (!token) {
     token = c.req.header("Authorization")?.trim();
-    retrievedTokenFromHeader = true;
+    isHeaderToken = true;
   }
 
   if (!token) {
@@ -27,7 +28,7 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     );
   }
 
-  if (retrievedTokenFromHeader && token.startsWith("Bearer")) {
+  if (isHeaderToken && token.startsWith("Bearer")) {
     return errorResponse(
       c,
       "Invalid authentication type. Use 'Bearer' token",
@@ -35,7 +36,7 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     );
   }
 
-  if (retrievedTokenFromHeader) {
+  if (isHeaderToken) {
     [, token] = token.split(/\b\s+\b/);
   }
 
@@ -51,7 +52,13 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     return errorResponse(c, err.message, StatusCodes.UNAUTHORIZED);
   }
 
-  setAuthSession(payload);
+  const authUser = await getUser({ id: payload.user_id });
+
+  if (!authUser) {
+    return errorResponse(c, "unauthorized", StatusCodes.UNAUTHORIZED);
+  }
+
+  setAuthSession(authUser, payload);
   await next();
   await updateSessionLastUsed(payload.session_id);
 });
@@ -59,7 +66,7 @@ export const authMiddleware = createMiddleware(async (c, next) => {
 export const auth = () => {
   const session = getAuthSession();
 
-  if (!session) {
+  if (!session?.session) {
     throw new HTTPException(StatusCodes.UNAUTHORIZED, {
       message: "unauthorized",
     });
