@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
+import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { JwtToken } from "./token";
 import { getEnv } from "config/env";
 import { AppEnv } from "../enums/env.enum";
@@ -28,8 +28,20 @@ export const setAuthenicationCookie = (
 };
 
 export const clearAuthenicationCookie = (c: Context) => {
-  setCookie(c, getEnv("ACCESS_TOKEN_COOKIE_NAME"), "", { maxAge: 0 });
-  setCookie(c, getEnv("REFRESH_TOKEN_COOKIE_NAME"), "", { maxAge: 0 });
+  const now = new Date();
+  deleteCookie(c, getEnv("ACCESS_TOKEN_COOKIE_NAME"), {
+    secure: getEnv("NODE_ENV") === AppEnv.PRODUCTION,
+    httpOnly: true,
+    sameSite: getEnv("NODE_ENV") === AppEnv.PRODUCTION ? "Strict" : "Lax",
+    path: "/",
+  });
+
+  deleteCookie(c, getEnv("REFRESH_TOKEN_COOKIE_NAME"), {
+    secure: getEnv("NODE_ENV") === AppEnv.PRODUCTION,
+    httpOnly: true,
+    sameSite: getEnv("NODE_ENV") === AppEnv.PRODUCTION ? "Strict" : "Lax",
+    path: getEnv("REFRESH_PATH"),
+  });
 };
 
 export const getRefreshTokenCookie = (c: Context) =>

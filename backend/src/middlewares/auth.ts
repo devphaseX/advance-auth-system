@@ -6,12 +6,12 @@ import tryit from "@/commons/utils/tryit";
 import { getEnv } from "config/env";
 import { createMiddleware } from "hono/factory";
 import StatusCodes from "http-status";
-import { getAuthSession, setAuthSession } from "./context_storage";
+import { getAuthSession, RequestEnv, setAuthSession } from "./context_storage";
 import { HTTPException } from "hono/http-exception";
 import { updateSessionLastUsed } from "@/modules/session/session.service";
 import { getUser } from "@/modules/auth/auth.service";
 
-export const authMiddleware = createMiddleware(async (c, next) => {
+export const authMiddleware = createMiddleware<RequestEnv>(async (c, next) => {
   let token = getAccessTokenCookie(c)?.trim();
   let isHeaderToken = false;
 

@@ -43,6 +43,7 @@ import {
   JwtRefreshPayload,
 } from "@/commons/interface/jwt.js";
 import {
+  clearAuthenicationCookie,
   getRefreshTokenCookie,
   setAuthenicationCookie,
 } from "@/commons/utils/cookie.js";
@@ -62,6 +63,7 @@ import {
   FORGET_PASSWORD_OTP_EXPIRES_IN,
   VERIFY_EMAIL_EXPIRES_IN,
 } from "@/commons/utils/constant.js";
+import { auth, authMiddleware } from "@/middlewares/auth.js";
 
 const app = new Hono();
 
@@ -418,5 +420,13 @@ app.post(
     );
   },
 );
+
+app.delete("/logout", authMiddleware, async (c) => {
+  const { session } = auth();
+  clearAuthenicationCookie(c);
+  await invalidateSession(session.session_id);
+
+  return successResponse(c, undefined, StatusCodes.OK, "logout successful");
+});
 
 export default app;
