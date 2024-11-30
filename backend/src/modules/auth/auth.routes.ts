@@ -34,6 +34,7 @@ import {
   createVerificationCode,
   getVerificationCode,
   getVerificationCodeAttemptWithin,
+  removeVerificationCode,
 } from "@/services/verification.service.js";
 import { VerificationEnum } from "@/commons/enums/verification.enum.js";
 import { signToken, verifyToken } from "@/commons/utils/token.js";
@@ -292,20 +293,27 @@ app.post(
     }
 
     if (isPast(verifyEmailCode.expired_at)) {
+      await removeVerificationCode(verifyEmailCode.id, verifyEmailCode.user_id);
       return errorResponse(c, "token expired", StatusCodes.UNAUTHORIZED);
     }
 
-    const user = await getUser({ id: verifyEmailCode.user_id });
-    if (!user) {
-      return errorResponse(c, "invalid token");
-    }
+    try {
+      const user = await getUser({ id: verifyEmailCode.user_id });
+      if (!user) {
+        return errorResponse(c, "invalid token");
+      }
 
-    if (user.email_verified_at) {
-      return errorResponse(c, "user verified already", StatusCodes.FORBIDDEN);
-    }
+      if (user.email_verified_at) {
+        return errorResponse(c, "user verified already", StatusCodes.FORBIDDEN);
+      }
 
-    const verifiedUser = await markUserEmailAsVerified(verifyEmailCode.user_id);
-    return successResponse(c, { data: { user: verifiedUser } });
+      const verifiedUser = await markUserEmailAsVerified(
+        verifyEmailCode.user_id,
+      );
+      return successResponse(c, { data: { user: verifiedUser } });
+    } finally {
+      await removeVerificationCode(verifyEmailCode.id, verifyEmailCode.user_id);
+    }
   },
 );
 
@@ -401,7 +409,13 @@ app.post(
       await hash(password);
 
     await updateUserPassword(userId, newPasswordHash, newPasswordSaltByte);
-    return successResponse(c, "password resetted successfully");
+    await removeVerificationCode(resetCode.id, resetCode.user_id);
+    return successResponse(
+      c,
+      undefined,
+      StatusCodes.OK,
+      "password resetted successfully",
+    );
   },
 );
 

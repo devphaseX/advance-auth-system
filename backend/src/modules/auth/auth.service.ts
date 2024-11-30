@@ -136,3 +136,5 @@ export const updateUserPassword = async (
 
   return Boolean(updatedUser);
 };
+
+export type AuthUser = Awaited<ReturnType<typeof getUser>>;

@@ -63,21 +63,29 @@ export const getVerificationCode = async (
   userId?: string,
 ) => {
   let key = token;
+  let period: TimeSpan;
   if (key.length > getEnv("OTP_LENGTH")) {
     const [token, err] = await tryit(
-      verifyToken<{ otp: string }>(key, getEnv("ENCRYPTION_KEY")),
+      verifyToken<{ otp: string; exp: number; iat: number }>(
+        key,
+        getEnv("ENCRYPTION_KEY"),
+      ),
     );
 
+    console.log({ token });
     if (err) {
       return;
     }
 
+    period = new TimeSpan(token.exp - token.iat, "s");
     key = token.otp;
   }
 
+  period ??= getEnv("OTP_EXPIRES_IN");
+
   const totp = new TOTPController({
     digits: getEnv("OTP_LENGTH"),
-    period: getEnv("OTP_EXPIRES_IN"),
+    period,
   });
 
   const isValid = await totp.verify(
@@ -110,16 +118,13 @@ export const getVerificationCode = async (
   return verifyCode;
 };
 
-export const removeVerificationCode = async (
-  key: string,
-  type: VerificationEnum,
-) => {
+export const removeVerificationCode = async (id: string, userId: string) => {
   const [removed] = await db
     .delete(verificationCodeTable)
     .where(
       and(
-        eq(verificationCodeTable.code, key),
-        eq(verificationCodeTable.type, type),
+        eq(verificationCodeTable.user_id, userId),
+        eq(verificationCodeTable.id, id),
       ),
     )
     .returning();

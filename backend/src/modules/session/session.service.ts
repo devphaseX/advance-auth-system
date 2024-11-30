@@ -10,3 +10,13 @@ export const getSession = async (sessionId: string) => {
 
   return session;
 };
+
+export const updateSessionLastUsed = async (sessionId: string) => {
+  const [updatedLastUsedSession] = await db
+    .update(sessionTable)
+    .set({ last_used: new Date() })
+    .where(eq(sessionTable.id, sessionId))
+    .returning();
+
+  return !!updatedLastUsedSession;
+};
