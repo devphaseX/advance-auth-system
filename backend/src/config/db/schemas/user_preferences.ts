@@ -8,13 +8,8 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
-import { z } from "zod";
 import { dateTimestampFields } from "./shared";
-import {
-  InferInsertModel,
-  relations,
-  type InferSelectModel,
-} from "drizzle-orm";
+import { relations, type InferSelectModel } from "drizzle-orm";
 import { userTable } from "./users_table";
 
 export const userPreferenceTable = pgTable("user_preferences", {

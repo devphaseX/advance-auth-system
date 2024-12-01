@@ -11,7 +11,7 @@ import { HTTPException } from "hono/http-exception";
 import { updateSessionLastUsed } from "@/modules/session/session.service";
 import { getUser, getClientUserPayload } from "@/modules/auth/auth.service";
 
-export const authMiddleware = (ignore2faCheck = false) =>
+export const authMiddleware = (allowNonVerifiedAccount = false) =>
   createMiddleware<RequestEnv>(async (c, next) => {
     let token = getAccessTokenCookie(c)?.trim();
     let isHeaderToken = false;
@@ -59,16 +59,8 @@ export const authMiddleware = (ignore2faCheck = false) =>
       return errorResponse(c, "unauthorized", StatusCodes.UNAUTHORIZED);
     }
 
-    if (
-      authUser.preference.enabled_2fa &&
-      !ignore2faCheck &&
-      !payload.two_factor_verified
-    ) {
-      return successResponse(
-        c,
-        { data: { mfaRequired: true } },
-        StatusCodes.FORBIDDEN,
-      );
+    if (!(allowNonVerifiedAccount || authUser.email_verified_at)) {
+      return errorResponse(c, "email not verified", StatusCodes.FORBIDDEN);
     }
 
     setAuthSession(authUser, payload);

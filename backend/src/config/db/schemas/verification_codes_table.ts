@@ -16,6 +16,7 @@ export const verificationCodeTable = pgTable("verifications_codes", {
       onDelete: "cascade",
     })
     .notNull(),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
   expired_at: timestamp("expired_at", { mode: "date" }).notNull(),
   type: varchar("type").$type<VerificationEnum>().notNull(),
   ...dateTimestampFields,

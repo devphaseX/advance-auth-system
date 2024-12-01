@@ -40,3 +40,6 @@ export const resetPasswordSchema = z.object({
 export const forgetPasswordSchema = z.object({ email: z.string().email() });
 
 export const getRecoveryCodesSchema = z.object({ password: z.string().min(1) });
+
+export const requestChangeEmailSchema = z.object({ email: z.string().email() });
+export const confirmChangeEmailSchema = z.object({ code: z.string().min(6) });

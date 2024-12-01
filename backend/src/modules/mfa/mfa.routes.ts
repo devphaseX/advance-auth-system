@@ -119,7 +119,7 @@ app.post(
 
     await markSessionAs2faVerified(session.session_id, session.user_id);
     const accessToken = await signToken<JwtAccessPayload>(
-      { ...session, enable_2fa: true, two_factor_verified: true },
+      { ...session, required_2fa: true, two_factor_verified: true },
       getEnv("AUTH_SECRET"),
       getEnv("AUTH_EXPIRES_IN"),
     );

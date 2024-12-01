@@ -28,6 +28,7 @@ type CreateVerificationCodeData = Pick<VerificationCode, "user_id" | "type"> & {
 
 export const createVerificationCode = async (
   data: CreateVerificationCodeData,
+  metadata?: Record<string, any>,
 ) => {
   const validPeriod = data.expires_in ?? getEnv("OTP_EXPIRES_IN");
   const tot = new TOTPController({
@@ -49,6 +50,7 @@ export const createVerificationCode = async (
     .values({
       code: Buffer.from(sha256(new TextEncoder().encode(otp))).toString("hex"),
       user_id: data.user_id,
+      metadata,
       expired_at: createDate(validPeriod),
       type: data.type,
     })
@@ -129,6 +131,20 @@ export const removeVerificationCode = async (id: string, userId: string) => {
     .returning();
 
   return !!removed;
+};
+
+export const invalidateVerificationCodes = async (
+  userId: string,
+  type: VerificationEnum,
+) => {
+  await db
+    .delete(verificationCodeTable)
+    .where(
+      and(
+        eq(verificationCodeTable.user_id, userId),
+        eq(verificationCodeTable.type, type),
+      ),
+    );
 };
 
 export const getVerificationCodeAttemptWithin = async (

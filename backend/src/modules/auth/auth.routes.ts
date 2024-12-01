@@ -39,6 +39,7 @@ import {
 import { VerificationEnum } from "@/commons/enums/verification.enum.js";
 import { signToken, verifyToken } from "@/commons/utils/token.js";
 import {
+  Jwt2faAccessPayload,
   JwtAccessPayload,
   JwtRefreshPayload,
 } from "@/commons/interface/jwt.js";
@@ -64,6 +65,10 @@ import {
   VERIFY_EMAIL_EXPIRES_IN,
 } from "@/commons/utils/constant.js";
 import { auth, authMiddleware } from "@/middlewares/auth.js";
+import { verifyLoginMfaSchema } from "@/commons/validators/mfa.validator.js";
+import { decrypt } from "@/commons/utils/encryption.js";
+import { decodeBase64 } from "@oslojs/encoding";
+import { verifyTOTP } from "@oslojs/otp";
 
 const app = new Hono();
 
@@ -155,6 +160,30 @@ app.post(
       });
     }
 
+    if (user.preference.enabled_2fa) {
+      const accessToken = await signToken<Jwt2faAccessPayload>(
+        {
+          email: user.email,
+          user_agent: userAgent,
+          required_2fa: user.preference.enabled_2fa,
+        },
+        getEnv("TWO_FACTOR_AUTH_SECRET"),
+        getEnv("TWO_FACTOR_AUTH_SECRET_EXPIRES_IN"),
+        { audiences: ["user"] },
+      );
+
+      return successResponse(c, {
+        data: {
+          user: await getClientUserPayload({ id: user.id }),
+          mfaRequired: Boolean(user.preference.enabled_2fa),
+          accessToken: {
+            value: accessToken.token,
+            expiredAt: createDate(accessToken.expiresIn),
+          },
+        },
+      });
+    }
+
     const session = await createSession({
       user_id: user.id,
       user_agent: userAgent!,
@@ -164,8 +193,6 @@ app.post(
       {
         user_id: user.id,
         session_id: session.id,
-        enable_2fa: user.preference.enabled_2fa,
-        two_factor_verified: !user.preference.enabled_2fa,
       },
       getEnv("AUTH_SECRET"),
       getEnv("AUTH_EXPIRES_IN"),
@@ -194,6 +221,88 @@ app.post(
         },
       },
     });
+  },
+);
+
+app.post(
+  "/sign-in/2fa",
+  zValidator(
+    "json",
+    verifyLoginMfaSchema,
+    validateErrorHook("invalid request body"),
+  ),
+  async (c) => {
+    const { code, token } = c.req.valid("json");
+    const [tokenPayload, err] = await tryit(
+      verifyToken<Jwt2faAccessPayload>(token, getEnv("TWO_FACTOR_AUTH_SECRET")),
+    );
+
+    if (err) {
+      return errorResponse(c, err.message, StatusCodes.UNAUTHORIZED);
+    }
+
+    const user = await getUser({ email: tokenPayload.email });
+
+    if (!user) {
+      return errorResponse(
+        c,
+        "invalid or expired token",
+        StatusCodes.UNAUTHORIZED,
+      );
+    }
+
+    if (!(user.preference.enabled_2fa && user.preference.two_factor_secret)) {
+      return errorResponse(c, "Mfa not setup", StatusCodes.FORBIDDEN);
+    }
+
+    const keyBytes = decrypt(decodeBase64(user.preference.two_factor_secret));
+
+    if (!verifyTOTP(keyBytes, 30, 6, code)) {
+      return errorResponse(c, "Invalid code", StatusCodes.FORBIDDEN);
+    }
+
+    const session = await createSession({
+      user_id: user.id,
+      user_agent: tokenPayload.user_agent ?? "",
+    });
+
+    const accessToken = await signToken<JwtAccessPayload>(
+      {
+        user_id: user.id,
+        session_id: session.id,
+      },
+      getEnv("AUTH_SECRET"),
+      getEnv("AUTH_EXPIRES_IN"),
+      { audiences: ["user"] },
+    );
+
+    const refreshToken = await signToken<JwtRefreshPayload>(
+      { session_id: session.id },
+      getEnv("AUTH_REFRESH_SECRET"),
+      getEnv("AUTH_REFRESH_EXPIRES_IN"),
+      { audiences: ["user"] },
+    );
+
+    setAuthenicationCookie(c, { access: accessToken, refresh: refreshToken });
+    const data = {
+      user: await getClientUserPayload({ id: user.id }),
+      accessToken: {
+        value: accessToken.token,
+        expiredAt: createDate(accessToken.expiresIn),
+      },
+      refreshToken: {
+        value: refreshToken.token,
+        expiredAt: createDate(refreshToken.expiresIn),
+      },
+    };
+    return successResponse(
+      c,
+      {
+        data,
+      },
+      StatusCodes.OK,
+      "mfa verification completed",
+    );
   },
 );
 
@@ -232,7 +341,7 @@ app.post("/refresh", zValidator("json", refreshTokenSchema), async (c) => {
     {
       user_id: user.id,
       session_id: session.id,
-      enable_2fa: user.preference.enabled_2fa,
+      required_2fa: user.preference.enabled_2fa,
       two_factor_verified: user.preference.enabled_2fa
         ? Boolean(session.two_factor_verified)
         : false,
@@ -421,7 +530,7 @@ app.post(
   },
 );
 
-app.delete("/logout", authMiddleware(true), async (c) => {
+app.delete("/logout", authMiddleware(), async (c) => {
   const { session } = auth();
   clearAuthenicationCookie(c);
   await invalidateSession(session.session_id);

@@ -167,6 +167,18 @@ export const updateUserPassword = async (
   return Boolean(updatedUser);
 };
 
+export const updateUserEmail = async (userId: string, email: string) => {
+  const [updatedUser] = await db
+    .update(userTable)
+    .set({
+      email,
+    })
+    .where(eq(userTable.id, userId))
+    .returning();
+
+  return Boolean(updatedUser);
+};
+
 export type AuthUser = Awaited<ReturnType<typeof getUser>>;
 
 export const resetRecoveryCodes = async (

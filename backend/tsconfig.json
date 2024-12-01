@@ -26,6 +26,7 @@
       "@/*": ["./src/*"],
       "@/commons/*": ["./commons/*"],
       "@/middlewares/*": ["./middlewares/*"],
+      "@/mailers/*": ["./mailers/*"],
       "@/env": ["./config/env/env.ts"],
       "@/services/*": ["./services/*"],
       "@/utils": ["./utils/*"],

@@ -39,6 +39,11 @@ export const envSchema = z.object({
   MAIL_TRAP_ACCOUNT_ID: z.string().min(1),
   TWO_FACTOR_SECRET_LENGTH: z.coerce.number().int(),
   PLATFORM_NAME: z.string().min(1),
+  TWO_FACTOR_AUTH_SECRET: z.string().min(16),
+  TWO_FACTOR_AUTH_SECRET_EXPIRES_IN: z
+    .string()
+    .refine(isSupportedTimeUnit, { message: "invalid time unit value" })
+    .transform((value) => parseStrTimeUnit(value)!),
 });
 
 export const formatErrors = (
