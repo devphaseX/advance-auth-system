@@ -79,7 +79,7 @@ app.post(
     );
 
     if (!isCorrectPassword) {
-      return errorResponse(c, "incorrect password", StatusCodes.NOT_FOUND, {
+      return errorResponse(c, "incorrect password", StatusCodes.FORBIDDEN, {
         error_code: ErrorCode.INCORRECT_PASSWORD,
       });
     }
@@ -259,7 +259,6 @@ app.post(
       }
 
       await updateUserEmail(user.id, email);
-
       return successResponse(c, undefined, StatusCodes.OK, "email updated");
     } finally {
       if (requestChangeEmailCode) {

@@ -1,6 +1,8 @@
 import { z, type TypeOf } from "zod";
 import { createInsertSchema } from "drizzle-zod";
 import { userTable } from "@/db/schemas/users_table.js";
+import { VerifyCodeType } from "../enums/verify_code";
+import { getEnv } from "config/env";
 
 export const registerUserSchema = createInsertSchema(userTable, {
   name: z.string().min(1).max(255),
@@ -33,11 +35,27 @@ export const verifyEmailSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   password: z.string().min(8),
-  verificationCode: z.string().min(1).max(255),
-  userId: z.string().min(1),
+  sessionId: z.string().min(12),
 });
 
 export const forgetPasswordSchema = z.object({ email: z.string().email() });
+export const verifyForgetPasswordCodeSchema = z
+  .union([
+    z.object({
+      type: z.enum([VerifyCodeType.OTP]),
+      otp: z.string().length(getEnv("OTP_LENGTH")),
+    }),
+    z.object({
+      type: z.enum([VerifyCodeType.TOKEN]),
+      token: z.string().min(12),
+    }),
+  ])
+  .and(z.object({ sessionId: z.string().min(12) }));
+
+export const resetPassword2faSchema = z.object({
+  code: z.string().min(5),
+  sessionId: z.string().min(12),
+});
 
 export const getRecoveryCodesSchema = z.object({ password: z.string().min(1) });
 

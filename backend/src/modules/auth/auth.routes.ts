@@ -5,8 +5,10 @@ import {
   loginUserSchema,
   refreshTokenSchema,
   registerUserSchema,
+  resetPassword2faSchema,
   resetPasswordSchema,
   verifyEmailSchema,
+  verifyForgetPasswordCodeSchema,
 } from "commons/validators/auth.validator.js";
 import {
   checkEmailAvailability,
@@ -41,6 +43,7 @@ import { signToken, verifyToken } from "@/commons/utils/token.js";
 import {
   Jwt2faAccessPayload,
   JwtAccessPayload,
+  JwtPasswordResetPayload,
   JwtRefreshPayload,
 } from "@/commons/interface/jwt.js";
 import {
@@ -69,6 +72,13 @@ import { verifyLoginMfaSchema } from "@/commons/validators/mfa.validator.js";
 import { decrypt } from "@/commons/utils/encryption.js";
 import { decodeBase64 } from "@oslojs/encoding";
 import { verifyTOTP } from "@oslojs/otp";
+import {
+  createPasswordResetSession,
+  getPasswordResetSession,
+  markPasswordSession2faAsVerified,
+  markPasswordSessionEmailAsVerified,
+} from "@/services/password_reset_session.service.js";
+import { VerifyCodeType } from "@/commons/enums/verify_code.js";
 
 const app = new Hono();
 
@@ -469,8 +479,24 @@ app.post(
       user_id: user.id,
     });
 
+    const passworSession = await createPasswordResetSession({
+      email,
+      expired_at: createDate(new TimeSpan(30, "m")),
+      email_verified: !!user.email_verified_at,
+      user_id: user.id,
+      code: verifyCode.id,
+      two_factor_verified: user.preference.enabled_2fa ? false : null,
+    });
+
+    const passwordAuthToken = await signToken<JwtPasswordResetPayload>(
+      { session_id: passworSession.id },
+      getEnv("PASSWORD_SESSION_SECRET"),
+      getEnv("PASSWORD_SESSION_SECRET_EXPIRES_IN"),
+      { audiences: ["reset_password"] },
+    );
+
     try {
-      const url = `${getEnv("APP_ORIGIN")}/reset-password?token=${encoded}&userId=${user.id}&expiredAt=${verifyCode.expired_at}`;
+      const url = `${getEnv("APP_ORIGIN")}/reset-password?token=${encoded}&sessionId=${passwordAuthToken}&expiredAt=${verifyCode.expired_at}&type=${VerifyCodeType.TOKEN}`;
       await sendMail({
         to: [{ name: user.name, email: user.email }],
         ...passwordResetTemplate(url),
@@ -489,38 +515,180 @@ app.post(
 );
 
 app.post(
-  "/password/reset",
+  "/password/verify-email",
   zValidator(
     "json",
-    resetPasswordSchema,
+    verifyForgetPasswordCodeSchema,
     validateErrorHook("invalid request body"),
   ),
   async (c) => {
-    const { password, userId, verificationCode } = c.req.valid("json");
-    const resetCode = await getVerificationCode(
-      verificationCode,
-      VerificationEnum.PASSWORD_RESET,
-      userId,
+    const payload = c.req.valid("json");
+    const [authPayload, err] = await tryit(
+      verifyToken<JwtPasswordResetPayload>(
+        payload.sessionId,
+        getEnv("PASSWORD_SESSION_SECRET"),
+      ),
     );
 
-    if (!resetCode) {
-      return errorResponse(c, "invalid reset code", StatusCodes.UNAUTHORIZED);
+    if (err) {
+      return errorResponse(c, err.message, StatusCodes.UNAUTHORIZED);
     }
 
-    if (isPast(resetCode.expired_at)) {
-      return errorResponse(c, "expired reset code", StatusCodes.UNAUTHORIZED);
+    const { session_id } = authPayload;
+    const passwordResetSession = await getPasswordResetSession(session_id);
+
+    if (!passwordResetSession) {
+      return errorResponse(c, "invalid session", StatusCodes.UNAUTHORIZED);
     }
 
-    const user = await getClientUserPayload({ id: userId });
-    if (!(user && userId === resetCode.user_id)) {
-      return errorResponse(c, "invalid reset code", StatusCodes.UNAUTHORIZED);
+    if (isPast(passwordResetSession.expired_at)) {
+      return errorResponse(c, "expired session", StatusCodes.UNAUTHORIZED);
     }
 
-    const { hash: newPasswordHash, salt: newPasswordSaltByte } =
-      await hash(password);
+    const verificationCode = await getVerificationCode(
+      payload.type === VerifyCodeType.TOKEN ? payload.token : payload.otp,
+      VerificationEnum.PASSWORD_RESET,
+    );
 
-    await updateUserPassword(userId, newPasswordHash, newPasswordSaltByte);
-    await removeVerificationCode(resetCode.id, resetCode.user_id);
+    if (
+      !(verificationCode && verificationCode.id === passwordResetSession.code)
+    ) {
+      return errorResponse(
+        c,
+        payload.type === VerifyCodeType.OTP
+          ? "invalid or expired otp"
+          : "invalid or expired token",
+        StatusCodes.UNAUTHORIZED,
+      );
+    }
+
+    const user = await getUser({ email: passwordResetSession.email });
+    if (!(user && user.id === passwordResetSession.user_id)) {
+      return errorResponse(c, "expired session", StatusCodes.UNAUTHORIZED);
+    }
+
+    await markPasswordSessionEmailAsVerified(passwordResetSession.id, user.id);
+    if (!passwordResetSession.email_verified) {
+      await markUserEmailAsVerified(user.id);
+    }
+
+    return successResponse(
+      c,
+      {
+        requiredMfa: !!user.preference.enabled_2fa,
+        sessionId: payload.sessionId,
+      },
+      StatusCodes.OK,
+    );
+  },
+);
+
+app.post(
+  "/password/2fa",
+  zValidator("json", resetPassword2faSchema),
+  async (c) => {
+    const payload = c.req.valid("json");
+    const [authPayload, err] = await tryit(
+      verifyToken<JwtPasswordResetPayload>(
+        payload.sessionId,
+        getEnv("PASSWORD_SESSION_SECRET"),
+      ),
+    );
+
+    if (err) {
+      return errorResponse(c, err.message, StatusCodes.UNAUTHORIZED);
+    }
+
+    const { session_id } = authPayload;
+    const passwordResetSession = await getPasswordResetSession(session_id);
+
+    if (!passwordResetSession) {
+      return errorResponse(c, "invalid session", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (isPast(passwordResetSession.expired_at)) {
+      return errorResponse(c, "expired session", StatusCodes.FORBIDDEN);
+    }
+
+    if (!passwordResetSession.email_verified) {
+      return errorResponse(c, "token not verified", StatusCodes.FORBIDDEN);
+    }
+
+    const user = await getUser({ email: passwordResetSession.email });
+    if (!(user && user.id === passwordResetSession.user_id)) {
+      return errorResponse(c, "expired session", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (!user.preference.enabled_2fa) {
+      return errorResponse(c, "2fa not setup", StatusCodes.FORBIDDEN);
+    }
+
+    const keyBytes = decrypt(decodeBase64(user.preference.two_factor_secret!));
+
+    if (!verifyTOTP(keyBytes, 30, 6, payload.code)) {
+      return errorResponse(c, "Invalid code", StatusCodes.FORBIDDEN);
+    }
+
+    await markPasswordSession2faAsVerified(passwordResetSession.id, user.id);
+
+    return successResponse(
+      c,
+      {
+        sessionId: payload.sessionId,
+      },
+      StatusCodes.OK,
+    );
+  },
+);
+
+app.post(
+  "/password/reset",
+  zValidator("json", resetPasswordSchema),
+  async (c) => {
+    const payload = c.req.valid("json");
+    const [authPayload, err] = await tryit(
+      verifyToken<JwtPasswordResetPayload>(
+        payload.sessionId,
+        getEnv("PASSWORD_SESSION_SECRET"),
+      ),
+    );
+
+    if (err) {
+      return errorResponse(c, err.message, StatusCodes.UNAUTHORIZED);
+    }
+    const { session_id } = authPayload;
+    const passwordResetSession = await getPasswordResetSession(session_id);
+    if (!passwordResetSession) {
+      return errorResponse(c, "invalid session", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (isPast(passwordResetSession.expired_at)) {
+      return errorResponse(c, "expired session", StatusCodes.FORBIDDEN);
+    }
+
+    if (!passwordResetSession.email_verified) {
+      return errorResponse(c, "token not verified", StatusCodes.FORBIDDEN);
+    }
+
+    const user = await getUser({ email: passwordResetSession.email });
+    if (!(user && user.id === passwordResetSession.user_id)) {
+      return errorResponse(c, "expired session", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (
+      user.preference.enabled_2fa &&
+      !passwordResetSession.two_factor_verified
+    ) {
+      return errorResponse(
+        c,
+        "required mfa verification",
+        StatusCodes.FORBIDDEN,
+      );
+    }
+
+    const { hash: password_hash, salt } = await hash(payload.password);
+    await updateUserPassword(user.id, password_hash, salt);
+
     return successResponse(
       c,
       undefined,

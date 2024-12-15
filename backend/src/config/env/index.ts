@@ -44,6 +44,12 @@ export const envSchema = z.object({
     .string()
     .refine(isSupportedTimeUnit, { message: "invalid time unit value" })
     .transform((value) => parseStrTimeUnit(value)!),
+
+  PASSWORD_SESSION_SECRET: z.string().min(16),
+  PASSWORD_SESSION_SECRET_EXPIRES_IN: z
+    .string()
+    .refine(isSupportedTimeUnit, { message: "invalid time unit value" })
+    .transform((value) => parseStrTimeUnit(value)!),
 });
 
 export const formatErrors = (

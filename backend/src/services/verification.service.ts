@@ -40,7 +40,7 @@ export const createVerificationCode = async (
   );
 
   const { token } = await signToken(
-    { otp },
+    { otp, type: data.type },
     getEnv("ENCRYPTION_KEY"),
     validPeriod,
   );

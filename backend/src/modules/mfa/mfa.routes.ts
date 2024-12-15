@@ -28,7 +28,7 @@ app.get("/setup", authMiddleware(true), async (c) => {
   const { user } = auth();
 
   if (user.preference.enabled_2fa) {
-    return errorResponse(c, "Mfa already enabled");
+    return errorResponse(c, "Mfa already enabled", StatusCodes.FORBIDDEN);
   }
 
   let secret = user.preference.two_factor_secret
@@ -91,52 +91,6 @@ app.post(
       { data: { enabled2fa: true } },
       StatusCodes.OK,
       "mfa setup completed",
-    );
-  },
-);
-
-app.post(
-  "/verify",
-  authMiddleware(true),
-  zValidator(
-    "json",
-    verifyLoginMfaSchema,
-    validateErrorHook("invalid request body"),
-  ),
-  async (c) => {
-    const { code } = c.req.valid("json");
-    const { session, user } = auth();
-
-    if (!(user.preference.enabled_2fa && user.preference.two_factor_secret)) {
-      return errorResponse(c, "Mfa not setup", StatusCodes.FORBIDDEN);
-    }
-
-    const keyBytes = decrypt(decodeBase64(user.preference.two_factor_secret));
-
-    if (!verifyTOTP(keyBytes, 30, 6, code)) {
-      return errorResponse(c, "Invalid code", StatusCodes.FORBIDDEN);
-    }
-
-    await markSessionAs2faVerified(session.session_id, session.user_id);
-    const accessToken = await signToken<JwtAccessPayload>(
-      { ...session, required_2fa: true, two_factor_verified: true },
-      getEnv("AUTH_SECRET"),
-      getEnv("AUTH_EXPIRES_IN"),
-    );
-
-    setAuthenicationCookie(c, { access: accessToken });
-    return successResponse(
-      c,
-      {
-        data: {
-          accessToken: {
-            value: accessToken.token,
-            expiredAt: createDate(accessToken.expiresIn),
-          },
-        },
-      },
-      StatusCodes.OK,
-      "mfa verified and logged in",
     );
   },
 );
