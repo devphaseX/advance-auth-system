@@ -35,18 +35,6 @@ export async function createUser(data: CreateUserData) {
         updated_at: userTable.updated_at,
       });
 
-    const recoveryCodes = Array(5)
-      .fill(0)
-      .map(() => {
-        const code = generateRandomRecoveryCode();
-        return encodeBase64(encryptString(code));
-      });
-
-    await db.insert(userPreferenceTable).values({
-      user_id: newUser.id,
-      recovery_codes: recoveryCodes,
-    });
-
     return newUser;
   });
 }
