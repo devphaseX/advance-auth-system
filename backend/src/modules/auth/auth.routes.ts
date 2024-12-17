@@ -624,7 +624,6 @@ app.post(
     }
 
     const keyBytes = decrypt(decodeBase64(user.preference.two_factor_secret!));
-
     if (!verifyTOTP(keyBytes, 30, 6, payload.code)) {
       return errorResponse(c, "Invalid code", StatusCodes.FORBIDDEN);
     }
