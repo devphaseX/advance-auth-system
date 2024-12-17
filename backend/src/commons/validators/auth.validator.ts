@@ -57,6 +57,15 @@ export const resetPassword2faSchema = z.object({
   sessionId: z.string().min(12),
 });
 
+export const resetPasswordWithRecoveryCodeSchema = z.object({
+  code: z.string().min(5),
+  sessionId: z.string().min(12),
+});
+
+export type ResetPasswordWithRecoveryCode = TypeOf<
+  typeof resetPasswordWithRecoveryCodeSchema
+>;
+
 export const getRecoveryCodesSchema = z.object({ password: z.string().min(1) });
 
 export const requestChangeEmailSchema = z.object({ email: z.string().email() });

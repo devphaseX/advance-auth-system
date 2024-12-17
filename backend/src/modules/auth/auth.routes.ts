@@ -7,6 +7,7 @@ import {
   registerUserSchema,
   resetPassword2faSchema,
   resetPasswordSchema,
+  resetPasswordWithRecoveryCodeSchema,
   verifyEmailSchema,
   verifyForgetPasswordCodeSchema,
 } from "commons/validators/auth.validator.js";
@@ -16,6 +17,7 @@ import {
   getClientUserPayload,
   getUser,
   markUserEmailAsVerified,
+  resetRecoveryCodes,
   updateUserPassword,
 } from "./auth.service.js";
 import { hash, verify } from "@/commons/utils/hash.js";
@@ -79,6 +81,10 @@ import {
   markPasswordSessionEmailAsVerified,
 } from "@/services/password_reset_session.service.js";
 import { VerifyCodeType } from "@/commons/enums/verify_code.js";
+import {
+  decryptMfaRecoveryCodes,
+  removeMfaSecret,
+} from "../mfa/mfa.service.js";
 
 const app = new Hono();
 
@@ -629,6 +635,69 @@ app.post(
     }
 
     await markPasswordSession2faAsVerified(passwordResetSession.id, user.id);
+
+    return successResponse(
+      c,
+      {
+        sessionId: payload.sessionId,
+      },
+      StatusCodes.OK,
+    );
+  },
+);
+
+app.post(
+  "/password/recovery-code",
+  zValidator("json", resetPasswordWithRecoveryCodeSchema),
+  async (c) => {
+    const payload = c.req.valid("json");
+    const [authPayload, err] = await tryit(
+      verifyToken<JwtPasswordResetPayload>(
+        payload.sessionId,
+        getEnv("PASSWORD_SESSION_SECRET"),
+      ),
+    );
+
+    if (err) {
+      return errorResponse(c, err.message, StatusCodes.UNAUTHORIZED);
+    }
+
+    const { session_id } = authPayload;
+    const passwordResetSession = await getPasswordResetSession(session_id);
+
+    if (!passwordResetSession) {
+      return errorResponse(c, "invalid session", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (isPast(passwordResetSession.expired_at)) {
+      return errorResponse(c, "expired session", StatusCodes.FORBIDDEN);
+    }
+
+    if (!passwordResetSession.email_verified) {
+      return errorResponse(c, "token not verified", StatusCodes.FORBIDDEN);
+    }
+
+    const user = await getUser({ email: passwordResetSession.email });
+    if (!(user && user.id === passwordResetSession.user_id)) {
+      return errorResponse(c, "expired session", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (!user.preference.enabled_2fa) {
+      return errorResponse(c, "2fa not setup", StatusCodes.FORBIDDEN);
+    }
+
+    const recoveryCodes = decryptMfaRecoveryCodes(
+      user.preference.recovery_codes ?? [],
+    );
+
+    if (!recoveryCodes.some((code) => code === payload.code)) {
+      return errorResponse(c, "code not valid", StatusCodes.FORBIDDEN);
+    }
+
+    await Promise.all([
+      removeMfaSecret(user.id),
+      markPasswordSession2faAsVerified(passwordResetSession.id, user.id),
+    ]);
 
     return successResponse(
       c,

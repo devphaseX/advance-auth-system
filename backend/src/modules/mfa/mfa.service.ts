@@ -1,5 +1,7 @@
+import { decrypt, encrypt } from "@/commons/utils/encryption";
 import { db } from "@/db/init";
 import { userPreferenceTable } from "@/db/schemas";
+import { decodeBase64, encodeBase64 } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
 
 export const setMfaSecret = async (userId: string, secret: string) => {
@@ -21,9 +23,22 @@ export const removeMfaSecret = async (userId: string) => {
     .set({
       enabled_2fa: false,
       two_factor_secret: null,
+      recovery_codes: null,
     })
     .where(eq(userPreferenceTable.user_id, userId))
     .returning();
 
   return !!updatedPref;
 };
+
+export function decryptMfaRecoveryCodes(encryptedRecoveryCodes: string[]) {
+  return encryptedRecoveryCodes.map((encryptedCode) =>
+    new TextDecoder().decode(decrypt(decodeBase64(encryptedCode))),
+  );
+}
+
+export function encryptedMfaRecoveryCodes(recoveryCodes: string[]) {
+  return recoveryCodes.map((code) =>
+    encodeBase64(encrypt(new TextEncoder().encode(code))),
+  );
+}
