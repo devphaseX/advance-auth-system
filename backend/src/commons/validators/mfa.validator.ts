@@ -9,3 +9,8 @@ export const verifyLoginMfaSchema = z.object({
   code: z.string().min(5),
   token: z.string().min(1),
 });
+
+export const verify2faWithRecoveryCode = z.object({
+  code: z.string().min(8),
+  token: z.string().min(32),
+});
