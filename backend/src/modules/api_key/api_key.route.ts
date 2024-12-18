@@ -2,6 +2,7 @@ import { errorResponse, successResponse } from "@/commons/utils/api_response";
 import { createApiKeySchema } from "@/db/schemas";
 import { auth, authMiddleware } from "@/middlewares/auth";
 import {
+  apiScopes,
   createApiKey,
   deactivateApiKey,
   generateApiKey,
@@ -53,6 +54,10 @@ app.post(
 app.get("/", authMiddleware(true), async (c) => {
   const apiContents = await getApiKeys(c);
   return successResponse(c, apiContents);
+});
+
+app.get("/", authMiddleware(true), async (c) => {
+  return successResponse(c, { data: { scopes: apiScopes } });
 });
 
 app.get("/:id", authMiddleware(true), async (c) => {
