@@ -63,6 +63,7 @@ export const envSchema = z.object({
   API_CHECKSUM_LENGTH: z.coerce.number().int().min(8),
   API_PREFIX: z.string().min(1),
   API_DELETE_GRACE_PERIOD_DAYS: z.coerce.number().int().min(1),
+  API_KEY_HEADER_NAME: z.string().min(1),
 });
 
 export const formatErrors = (

@@ -117,7 +117,7 @@ function extractApiKeyComponents(apiKey: string) {
   };
 }
 
-function hashApiKey(apiKey: string) {
+export function hashApiKey(apiKey: string) {
   return encodeHexLowerCase(sha256(new TextEncoder().encode(apiKey)));
 }
 
@@ -242,3 +242,13 @@ export async function rotateApiKey(
     return newApiKey;
   });
 }
+
+export const updateApiKeyLastUsed = async (id: string) => {
+  const [updatedApiKey] = await db
+    .update(apiKeyTable)
+    .set({ last_used_at: new Date() })
+    .where(eq(apiKeyTable.id, id))
+    .returning();
+
+  return updatedApiKey;
+};
