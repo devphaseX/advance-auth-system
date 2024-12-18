@@ -62,4 +62,6 @@ export const createApiKeySchema = createInsertSchema(apiKeyTable, {
   expires_in: true,
 });
 
-export type CreateApiKeyPayload = TypeOf<typeof createApiKeySchema>;
+export type CreateApiKeyPayload = TypeOf<typeof createApiKeySchema> & {
+  replaces_key_id?: string;
+};

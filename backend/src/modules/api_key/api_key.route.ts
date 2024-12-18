@@ -7,12 +7,16 @@ import {
   generateApiKey,
   getApiKeyById,
   getApiKeys,
+  rotateApiKey,
 } from "@/services/api_key.service";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { TimeSpan } from "oslo";
 import StatusCodes from "http-status";
-import { deactivateApiKeySchema } from "@/commons/validators/api_key.validator";
+import {
+  deactivateApiKeySchema,
+  rotateApiKeySchema,
+} from "@/commons/validators/api_key.validator";
 import { isAfter, isPast } from "date-fns";
 
 const app = new Hono();
@@ -103,6 +107,54 @@ app.post(
       payload.immediately
         ? "api key deactivated successfully"
         : `api key scheduled for deactivation at ${apiKey.deleted_at?.toISOString()}`,
+    );
+  },
+);
+
+app.post(
+  "/:id/rotate",
+  authMiddleware(true),
+  zValidator("json", rotateApiKeySchema),
+  async (c) => {
+    const payload = c.req.valid("json");
+    let apiKey = await getApiKeyById(c.req.param("id"));
+
+    if (!apiKey) {
+      return errorResponse(c, "api key not found", StatusCodes.NOT_FOUND);
+    }
+
+    if (!apiKey.is_active) {
+      return errorResponse(
+        c,
+        "api key already inactive",
+        StatusCodes.FORBIDDEN,
+      );
+    }
+
+    if (apiKey.rotation_window_ends) {
+      return errorResponse(
+        c,
+        "api key in rotation process",
+        StatusCodes.FORBIDDEN,
+      );
+    }
+
+    const { apiKey: newApiKey, key: newKey } = await rotateApiKey(
+      apiKey,
+      payload,
+    );
+
+    return successResponse(
+      c,
+      {
+        data: {
+          apiKey: newApiKey,
+          key: newKey,
+        },
+      },
+      StatusCodes.CREATED,
+      `Store this new API key securely. It will not be shown again.
+    The old API key will remain active for ${apiKey.expired_at?.toISOString()}`,
     );
   },
 );

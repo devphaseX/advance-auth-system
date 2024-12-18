@@ -1,7 +1,10 @@
 import { withPagination } from "@/commons/utils/paginate";
-import { DeactivateApiKeyPayload } from "@/commons/validators/api_key.validator";
+import {
+  DeactivateApiKeyPayload,
+  RotateApiKeyPayload,
+} from "@/commons/validators/api_key.validator";
 import { db } from "@/db/init";
-import { apiKeyTable, CreateApiKeyPayload } from "@/db/schemas";
+import { ApiKey, apiKeyTable, CreateApiKeyPayload } from "@/db/schemas";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64NoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 import { getEnv } from "config/env";
@@ -132,6 +135,7 @@ export async function createApiKey(payload: CreateApiKeyPayload) {
     .values({
       name: payload.name,
       hash,
+      replaces_key_id: payload.replaces_key_id ?? null,
       prefix,
       ...apiDurations,
     })
@@ -208,5 +212,33 @@ export async function deactivateApiKey(
     }
 
     return apiKey;
+  });
+}
+
+export async function rotateApiKey(
+  apiKey: ApiKey,
+  payload: RotateApiKeyPayload,
+) {
+  return db.transaction(async () => {
+    const newApiKey = await createApiKey({
+      name: apiKey.name,
+      scopes: apiKey.scopes,
+      expires_in: apiKey.expires_in,
+      replaces_key_id: apiKey.id,
+    });
+
+    const rotationWindowEnds = createDate(
+      new TimeSpan(payload.rotatationPeriods, "s"),
+    );
+
+    await db
+      .update(apiKeyTable)
+      .set({
+        replaced_by_key_id: newApiKey.apiKey.id,
+        rotation_window_ends: rotationWindowEnds,
+      })
+      .where(eq(apiKeyTable.id, apiKey.id));
+
+    return newApiKey;
   });
 }

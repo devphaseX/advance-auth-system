@@ -7,3 +7,9 @@ export const deactivateApiKeySchema = z.object({
 });
 
 export type DeactivateApiKeyPayload = TypeOf<typeof deactivateApiKeySchema>;
+
+export const rotateApiKeySchema = z.object({
+  rotatationPeriods: z.number().int(),
+});
+
+export type RotateApiKeyPayload = TypeOf<typeof rotateApiKeySchema>;
