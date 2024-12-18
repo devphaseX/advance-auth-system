@@ -5,7 +5,6 @@ import {
   apiScopes,
   createApiKey,
   deactivateApiKey,
-  generateApiKey,
   getApiKeyById,
   getApiKeys,
   rotateApiKey,
