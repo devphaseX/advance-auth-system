@@ -7,6 +7,8 @@ import { HTTPException } from "hono/http-exception";
 import authRoute from "@/modules/auth/auth.routes.js";
 import userRoute from "@/modules/user/user.route";
 import sessionRoute from "@/modules/session/session.route";
+import apiKeyRoute from "@/modules/api_key/api_key.route";
+
 import mfaRoute from "@/modules/mfa/mfa.routes";
 import { contextStorage } from "hono/context-storage";
 const app = new Hono();
@@ -28,7 +30,8 @@ app
   .route("/auth", authRoute)
   .route("/users", userRoute)
   .route("/sessions", sessionRoute)
-  .route("/mfa", mfaRoute);
+  .route("/mfa", mfaRoute)
+  .route("/api-keys", apiKeyRoute);
 
 app.onError(async (err, c) => {
   if (err instanceof HTTPException) {

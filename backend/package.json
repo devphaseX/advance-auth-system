@@ -18,11 +18,13 @@
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",
     "@oslojs/otp": "^1.0.0",
+    "@trigger.dev/sdk": "^3.3.7",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.36.4",
     "drizzle-zod": "^0.5.1",
+    "generate-api-key": "^1.0.2",
     "hono": "^4.6.12",
     "http-status": "^2.0.0",
     "jose": "^5.9.6",
@@ -36,6 +38,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@trigger.dev/build": "^3.3.7",
     "@types/node": "^20.11.17",
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.10",

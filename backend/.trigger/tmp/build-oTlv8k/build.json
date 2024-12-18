@@ -1,0 +1,47 @@
+{
+  "contentHash": "3ed7be3ba058fbfcbd4240b7cd526068",
+  "runtime": "node",
+  "cliPackageVersion": "3.3.7",
+  "packageVersion": "3.3.7",
+  "environment": "dev",
+  "target": "dev",
+  "files": [],
+  "sources": {
+    "trigger.config.ts": {
+      "contents": "eJxVjkEKwjAURPc5xZCVQmkW7tqN4ClERNrmJ43WpPwmbVV6d1FRcDfw5jHjrn3giAc0GedpF7xxFgsMhyvkNrKzljjXNKpBX9S4kaUQNL8lTaZKXfxTVw8B9BzO1MQC8pVOQ2qnwFN9S3Ol9d358cIyg1LYh8TfNpgMMfmGBH4sxJYYzefVQDE6b4c8zwVQJ9fpAq89gOZI7KuuwEH2Vh4zASyZWNaleAJYqkwk",
+      "contentHash": "22c6192670d6027f7776986586517fcd"
+    },
+    "tsconfig.json": {
+      "contents": "eJxlk8Fu2zAMhu9+CkHHomvuOW1LWsDF0gELdhp6kGUmZiuJhkQnKYq8+yA5tmX3YED8/0+USNGfhRBSk23RgP/dMpILci0+CyGEkAYruRb/JAQHF5b3QtZk5et97ypj6PwccfYd3MTwju0vrDYN6PeFwx41z7UDeQ0bcgEDg+ONCuiOpXtCAy/KwiK3o0eLMcNBmTCIEHZUdwZKx+Cpne+wyZJrIR/3L6mEXP8DgUwXa47Ez87VBvyAsPJH4K9bfdx0gudAbjdkz07EQEYx1L23KACd9mDBsTJzAy4teOydLWjyiskvNoNFHr0dsKoVqzmSXmT/4bgBRr2Fg+oMl7Ylz19a+aSM4cZTd2w2KkAo3f6MrJslV9rWoEb+4T4W70md17BTi5ZXKsBfH+uTD6vg9dg3It6i7/VBpG7Sagxjk1vFzTSHQsjvq7s0iSnl6m6YweRospZcGIkpzimLdW3grDxM5Fyb0Sr+EBk5xjkF7jSe6Q54jEL8HjjMuAD+hDo7OBNyrmM04Yak9cLHOOMuDU9EhnB59370pruPcU4ZrEaiX+duXWXtTKUl5TUR19srvYVLfDoPSvO3GEx6P3T7NCKRacjRKiKFENfiWvwHw61IFA==",
+      "contentHash": "a6d9561f8d9c5458b781a29a4dcd2e9c"
+    },
+    "package.json": {
+      "contents": "eJxtlMuWojAQhvc+RQ6LXg1RLtrqqhfzHH1OTGowCkkmKRi1T7/7nEAgNLqt/0td/ir4WhGSKNZAciQJEx1THFLW4jl1d4fQJL88gHfTA40WbQ1DzHErDbrkSL5WhBCSCOg8g+5G/jHkZ+IsX0sl4EbR9W8ISU6trMWAcfL2RrghhvErq4BenFaEroV0ONK8BqY8bRuS2oXokFn0otICghbqXaZ64nQ0rTt7TFj5eNSQXiWSPhaRRlaWISypMRzBChS8Iqd4RB22QuolGKIrQr57FwUYUAIUlzCz8uOslV77uVIHtgPr03xmNCvo+1hiYB5apB2rpWCoB2pDS5pNkHa1vrj1SSpm7yHLhm6WOrd3g3rSn96D4lpIVY19PGfQaF6kRyurCiwV0K2duPZEQWdTCIaQ/lGuV8p54lFJ8RGe5TNRI6huKLijJd1OQvBa2ya4UexouVQfWgR1G2cdd5gyI9MrRLfykfCOh0Z3NIthRJM6ZNgOY+RzCy7a9dfyuaUHuhujDZM1WmbCZGXk/dK9Gna+oweaTc+816GtPDZuhrXs/XlMwb+WawEB3kYLnAF2Bebuz622tRQhWsTo6FVB84Lu55fb/X59vPOlT9/7z7V/+D+K6y98qLihWUazV/oPM8pnJk6f0WyzEBcubBfysxkxw+yrDbeS76O96G7jyR7igfRZ+/9iWPk7zXvHVt+r/+2QbtE=",
+      "contentHash": "55e7170946725afcf0610b5d3f400bc1"
+    }
+  },
+  "externals": [
+    {
+      "name": "import-in-the-middle",
+      "version": "1.11.0"
+    }
+  ],
+  "config": {
+    "project": "proj_suhworwbyuxaddzinvkr",
+    "dirs": [
+      "src/trigger"
+    ]
+  },
+  "outputPath": "/home/buildthings/Documents/projects/practices/advance-auth-system/backend/.trigger/tmp/build-oTlv8k",
+  "runWorkerEntryPoint": "/home/buildthings/Documents/projects/practices/advance-auth-system/backend/.trigger/tmp/build-oTlv8k/tmp/bunx-1000-trigger.dev@latest/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs",
+  "indexWorkerEntryPoint": "/home/buildthings/Documents/projects/practices/advance-auth-system/backend/.trigger/tmp/build-oTlv8k/tmp/bunx-1000-trigger.dev@latest/node_modules/trigger.dev/dist/esm/entryPoints/dev-index-worker.mjs",
+  "configPath": "/home/buildthings/Documents/projects/practices/advance-auth-system/backend/.trigger/tmp/build-oTlv8k/home/buildthings/Documents/projects/practices/advance-auth-system/backend/trigger.config.mjs",
+  "customConditions": [],
+  "deploy": {
+    "env": {}
+  },
+  "build": {},
+  "otelImportHook": {
+    "include": []
+  }
+}

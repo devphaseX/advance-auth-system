@@ -1,0 +1,7 @@
+{
+  "configPath": "/home/buildthings/Documents/projects/practices/advance-auth-system/backend/.trigger/tmp/build-oTlv8k/home/buildthings/Documents/projects/practices/advance-auth-system/backend/trigger.config.mjs",
+  "tasks": [],
+  "workerEntryPoint": "/home/buildthings/Documents/projects/practices/advance-auth-system/backend/.trigger/tmp/build-oTlv8k/tmp/bunx-1000-trigger.dev@latest/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs",
+  "runtime": "node",
+  "customConditions": []
+}

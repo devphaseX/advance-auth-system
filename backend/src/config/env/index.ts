@@ -50,6 +50,19 @@ export const envSchema = z.object({
     .string()
     .refine(isSupportedTimeUnit, { message: "invalid time unit value" })
     .transform((value) => parseStrTimeUnit(value)!),
+
+  CRYPTO_HASH_ALGORITHM: z.enum(["sha256"]),
+  CRYPTO_ENCODING: z.enum(["base64"]),
+  CRYPTO_KEY_PREFIX_LENGTH: z.coerce.number().int().min(8),
+  CRYPTO_KEY_LENGTH: z.coerce.number().int().min(32),
+  CRYPTO_RSA_MODULUS_LENGTH: z.coerce.number().int(),
+  CRYPTO_AES_KEY_LENGTH: z.coerce.number().int().min(32),
+  CRYPTO_AES_ALGORITHM: z.enum(["aes-256-gcm"]),
+  API_KEY_LENGTH: z.coerce.number().int().min(64),
+  API_DELIMITER: z.string().length(1),
+  API_CHECKSUM_LENGTH: z.coerce.number().int().min(8),
+  API_PREFIX: z.string().min(1),
+  API_DELETE_GRACE_PERIOD_DAYS: z.coerce.number().int().min(1),
 });
 
 export const formatErrors = (
