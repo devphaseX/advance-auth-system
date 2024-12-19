@@ -10,6 +10,7 @@ import { getAuthSession, RequestEnv, setAuthSession } from "./context_storage";
 import { HTTPException } from "hono/http-exception";
 import { updateSessionLastUsed } from "@/modules/session/session.service";
 import { getUser, getClientUserPayload } from "@/modules/auth/auth.service";
+import getClientIp from "@/commons/utils/get_client_ip";
 
 export const authMiddleware = (allowNonVerifiedAccount = false) =>
   createMiddleware<RequestEnv>(async (c, next) => {
@@ -65,7 +66,7 @@ export const authMiddleware = (allowNonVerifiedAccount = false) =>
 
     setAuthSession(authUser, payload);
     await next();
-    await updateSessionLastUsed(payload.session_id);
+    await updateSessionLastUsed(payload.session_id, getClientIp(c));
   });
 
 export const auth = () => {

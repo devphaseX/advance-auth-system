@@ -17,13 +17,18 @@ export const getSession = async (sessionId: string) => {
   return session;
 };
 
-export const updateSessionLastUsed = async (sessionId: string) => {
+export const updateSessionLastUsed = async (
+  sessionId: string,
+  ip?: string | null,
+) => {
   const [updatedLastUsedSession] = await db
     .update(sessionTable)
-    .set({ last_used: new Date() })
+    .set({
+      last_used: new Date(),
+      ip: sql<string>`coalesce(${ip}, ${sessionTable.ip})`,
+    })
     .where(eq(sessionTable.id, sessionId))
     .returning();
-
   return !!updatedLastUsedSession;
 };
 
@@ -35,6 +40,7 @@ export const getSessions = (userId: string, activeSessionId?: string) => {
       expires_at: sessionTable.expires_at,
       user_agent: sessionTable.user_agent,
       last_used: sessionTable.last_used,
+      ip: sessionTable.ip,
       user_id: sessionTable.user_id,
       is_current: sql<boolean>`${sessionTable.id} = ${activeSessionId ?? ""}`,
       created_at: sessionTable.created_at,

@@ -21,6 +21,7 @@ export const sessionTable = pgTable("sessions", {
   two_factor_verified: boolean("two_factor_verified"),
   user_agent: varchar("user_agent", { length: 255 }),
   last_used: timestamp("last_used", { mode: "date" }),
+  ip: varchar("ip", { length: 20 }),
   expires_at: timestamp("expires_at", {
     mode: "date",
   }).notNull(),
