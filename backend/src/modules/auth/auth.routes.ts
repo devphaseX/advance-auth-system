@@ -156,7 +156,8 @@ app.post(
     }
 
     const user = await getUser({ email });
-    if (!user.password_hash) {
+    console.log({ user, email });
+    if (!(user && user.password_hash)) {
       return errorResponse(
         c,
         "invalid credentials",

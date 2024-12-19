@@ -4,21 +4,11 @@ import {
   type VerificationCode,
 } from "@/db/schemas/verification_codes_table.js";
 import { sha256 } from "@oslojs/crypto/sha2";
-import { decodeBase32IgnorePadding, decodeBase64 } from "@oslojs/encoding";
-import { env, getEnv } from "config/env/index.js";
-import { generateHOTP } from "oslo/otp";
-import { HMAC } from "oslo/crypto";
-import { encodeBase32NoPadding } from "@oslojs/encoding";
+import { getEnv } from "config/env/index.js";
 import { VerificationEnum } from "@/commons/enums/verification.enum";
 import { and, between, eq, SQL, sql } from "drizzle-orm";
-import { encryptString } from "@/commons/utils/encryption";
-import {
-  generateRandomOTP,
-  generateRandomRecoveryCode,
-} from "@/commons/utils/code";
 import { TOTPController } from "oslo/otp";
 import { createDate, TimeSpan } from "oslo";
-import { differenceInSeconds } from "date-fns";
 import { signToken, verifyToken } from "@/commons/utils/token";
 import tryit from "@/commons/utils/tryit";
 

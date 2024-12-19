@@ -23,7 +23,7 @@ export const apiKeyTable = pgTable("api_keys", {
   prefix: varchar("prefix", { length: 255 }).notNull(),
   hash: text("hash").notNull(),
   is_active: boolean("is_active").default(true).notNull(),
-  scopes: jsonb("scopes").$type<Array<ApiScopeKey>>(),
+  scopes: jsonb("scopes").$type<Array<ApiScopeKey>>().notNull(),
   user_id: varchar("user_id").references(() => userTable.id, {
     onDelete: "cascade",
   }),
@@ -34,7 +34,7 @@ export const apiKeyTable = pgTable("api_keys", {
   expires_in: integer("expires_in"),
   expired_at: timestamp("expired_at", { mode: "date", withTimezone: true }),
   replaced_by_key_id: varchar("replaced_by_key_id", { length: 50 }),
-  replaces_key_id: varchar("replaced_by_key_id", { length: 50 }),
+  replaces_key_id: varchar("replaces_key_id", { length: 50 }),
   rotation_window_ends: timestamp("rotation_window_ends", {
     mode: "date",
     withTimezone: true,
@@ -54,7 +54,7 @@ export const createApiKeySchema = createInsertSchema(apiKeyTable, {
   name: z.string().min(1).max(255),
   prefix: z.string().min(1).max(20),
   hash: z.string(),
-  scopes: z.string().array(),
+  scopes: z.nativeEnum(ApiScopeKey).array(),
   expires_in: z.coerce.number(),
 }).pick({
   name: true,

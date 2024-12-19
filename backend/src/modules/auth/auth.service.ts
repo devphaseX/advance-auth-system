@@ -35,6 +35,9 @@ export async function createUser(data: CreateUserData) {
         updated_at: userTable.updated_at,
       });
 
+    await db
+      .insert(userPreferenceTable)
+      .values({ user_id: newUser.id, enabled_email_notification: true });
     return newUser;
   });
 }

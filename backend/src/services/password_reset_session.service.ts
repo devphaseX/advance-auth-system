@@ -1,8 +1,6 @@
+import { CreatePasswordResetSessionPayload } from "@/commons/validators/password_reset_session";
 import { db } from "@/db/init";
-import {
-  CreatePasswordResetSessionPayload,
-  passwordResetSessionTable,
-} from "@/db/schemas";
+import { passwordResetSessionTable } from "@/db/schemas";
 import { and, eq } from "drizzle-orm";
 
 export async function createPasswordResetSession(

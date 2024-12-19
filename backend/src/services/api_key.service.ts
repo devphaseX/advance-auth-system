@@ -9,7 +9,7 @@ import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64NoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 import { getEnv } from "config/env";
 import { desc, eq } from "drizzle-orm";
-import _generateApiKey from "generate-api-key";
+import { generateApiKey as _generateApiKey } from "generate-api-key";
 import { Context } from "hono";
 import { createDate, TimeSpan } from "oslo";
 import { scheduleApiKeyDeletion } from "trigger/schedule_api_key_deletion";
@@ -130,11 +130,13 @@ export async function createApiKey(payload: CreateApiKeyPayload) {
           expired_at: createDate(new TimeSpan(payload.expires_in!, "s")),
         }
       : null;
+
   const [apiKey] = await db
     .insert(apiKeyTable)
     .values({
       name: payload.name,
       hash,
+      scopes: payload.scopes,
       replaces_key_id: payload.replaces_key_id ?? null,
       prefix,
       ...apiDurations,
@@ -231,15 +233,16 @@ export async function rotateApiKey(
       new TimeSpan(payload.rotatationPeriods, "s"),
     );
 
-    await db
+    const [oldApiKey] = await db
       .update(apiKeyTable)
       .set({
         replaced_by_key_id: newApiKey.apiKey.id,
         rotation_window_ends: rotationWindowEnds,
       })
-      .where(eq(apiKeyTable.id, apiKey.id));
+      .where(eq(apiKeyTable.id, apiKey.id))
+      .returning();
 
-    return newApiKey;
+    return { newApiKey, oldApiKey };
   });
 }
 

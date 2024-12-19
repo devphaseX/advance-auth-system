@@ -55,7 +55,7 @@ app.get("/", authMiddleware(true), async (c) => {
   return successResponse(c, apiContents);
 });
 
-app.get("/", authMiddleware(true), async (c) => {
+app.get("/scopes", authMiddleware(true), async (c) => {
   return successResponse(c, { data: { scopes: apiScopes } });
 });
 
@@ -143,10 +143,10 @@ app.post(
       );
     }
 
-    const { apiKey: newApiKey, key: newKey } = await rotateApiKey(
-      apiKey,
-      payload,
-    );
+    const {
+      newApiKey: { apiKey: newApiKey, key: newKey },
+      oldApiKey,
+    } = await rotateApiKey(apiKey, payload);
 
     return successResponse(
       c,
@@ -158,7 +158,7 @@ app.post(
       },
       StatusCodes.CREATED,
       `Store this new API key securely. It will not be shown again.
-    The old API key will remain active for ${apiKey.expired_at?.toISOString()}`,
+    The old API key will remain active for ${oldApiKey.rotation_window_ends?.toISOString()}`,
     );
   },
 );

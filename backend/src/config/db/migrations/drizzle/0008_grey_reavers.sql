@@ -1,0 +1,1 @@
+ALTER TABLE "api_keys" ADD COLUMN "replaces_key_id" varchar(50);

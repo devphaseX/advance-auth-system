@@ -50,6 +50,20 @@
       "when": 1732980690589,
       "tag": "0006_awesome_martin_li",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1734623613330,
+      "tag": "0007_tiresome_nehzno",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1734625705343,
+      "tag": "0008_grey_reavers",
+      "breakpoints": true
     }
   ]
 }

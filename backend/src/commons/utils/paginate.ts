@@ -36,7 +36,7 @@ export async function withPagination<T extends PgSelect>(
   const subQuery = qb.as("sub_query");
   const [{ count: totalRecords }] = await db
     .select({
-      count: sql<number>`count(*)`,
+      count: sql<number>`count(*)`.mapWith(Number),
     })
     .from(subQuery);
   const data = await qb.offset(offset).limit(perPage);

@@ -8,10 +8,7 @@ import {
 import { ulid } from "ulid";
 import { userTable } from "./users_table";
 import { dateTimestampFields } from "./shared";
-import { InferSelectModel, relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
-import { TypeOf, z } from "zod";
-import { getEnv } from "config/env";
+import { relations } from "drizzle-orm";
 
 export const passwordResetSessionTable = pgTable("password_reset_session", {
   id: varchar("id", { length: 50 })
@@ -41,25 +38,3 @@ export const passwordResetSessionRelations = relations(
     }),
   }),
 );
-
-export const createPasswordResetSessionSchema = createInsertSchema(
-  passwordResetSessionTable,
-  {
-    user_id: z.string().min(1).max(50),
-    email: z.string().email(),
-    code: z.string().min(getEnv("OTP_LENGTH")).max(512),
-    expired_at: z.coerce.date(),
-    two_factor_verified: z.boolean().nullish(),
-  },
-).pick({
-  user_id: true,
-  email: true,
-  email_verified: true,
-  code: true,
-  two_factor_verified: true,
-  expired_at: true,
-});
-
-export type CreatePasswordResetSessionPayload = TypeOf<
-  typeof createPasswordResetSessionSchema
->;
