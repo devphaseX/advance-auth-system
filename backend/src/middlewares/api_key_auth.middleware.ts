@@ -10,6 +10,8 @@ import { getEnv } from "config/env";
 import { isPast } from "date-fns";
 import { createMiddleware } from "hono/factory";
 import StatusCodes from "http-status";
+import { getApiKeyAuth, setApiKeyAuth } from "./context_storage";
+import { HTTPException } from "hono/http-exception";
 
 export const withApiKeyAuth = (...scopes: ApiScopeKey[]) => {
   if (!scopes.length) {
@@ -51,6 +53,7 @@ export const withApiKeyAuth = (...scopes: ApiScopeKey[]) => {
       }
     }
 
+    setApiKeyAuth(apiKey);
     await next();
     await updateApiKeyLastUsed(apiKey.id).catch((e) => {
       console.error(
@@ -60,4 +63,14 @@ export const withApiKeyAuth = (...scopes: ApiScopeKey[]) => {
       );
     });
   });
+};
+
+export const apiAuth = () => {
+  const apiKey = getApiKeyAuth();
+  if (!apiKey) {
+    throw new HTTPException(StatusCodes.UNAUTHORIZED, {
+      message: "unauthorized",
+    });
+  }
+  return apiKey;
 };
